@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Forest — Numbers 1 to ∞ as Trees</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --node-fill: #1a1a2e;
+    --node-stroke: #7c6fef;
+    --edge-color: #3a3a5c;
+    --highlight: #e8a449;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 1.5rem 2rem 0.8rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .back-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+  }
+
+  .back-link:hover { color: var(--accent); }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .controls label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .controls input, .controls select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    outline: none;
+    width: 80px;
+    text-align: center;
+  }
+
+  .controls input:focus, .controls select:focus {
+    border-color: var(--accent);
+  }
+
+  .controls select { width: auto; cursor: pointer; }
+
+  .nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .stats {
+    padding: 0.5rem 2rem;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 2rem;
+  }
+
+  .stats .stat-val { color: var(--text); }
+
+  /* Forest grid */
+  .forest {
+    padding: 0.8rem 2rem 2rem;
+    display: grid;
+    gap: 4px;
+  }
+
+  .tree-cell {
+    background: var(--surface);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tree-cell:hover {
+    border-color: var(--accent);
+    transform: scale(1.05);
+    z-index: 2;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+
+  .tree-cell.prime {
+    background: #12121f;
+  }
+
+  .tree-cell.power-of-2 {
+    background: #121a12;
+  }
+
+  .tree-cell svg {
+    width: 100%;
+    height: calc(100% - 18px);
+    display: block;
+  }
+
+  .tree-cell-label {
+    height: 18px;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .tree-cell:hover .tree-cell-label {
+    color: var(--text);
+  }
+
+  .tree-cell.prime .tree-cell-label {
+    color: var(--accent);
+    opacity: 0.7;
+  }
+
+  /* Color modes */
+  .color-depth .tree-node-d0 { fill: #e8a449; }
+  .color-depth .tree-node-d1 { fill: #c87f3a; }
+  .color-depth .tree-node-d2 { fill: #7c6fef; }
+  .color-depth .tree-node-d3 { fill: #5a4fd4; }
+  .color-depth .tree-node-d4 { fill: #3a3a8c; }
+  .color-depth .tree-node-d5 { fill: #2a2a6c; }
+
+  .color-type .tree-node-prime { fill: #7c6fef; }
+  .color-type .tree-node-composite { fill: #e8a449; }
+  .color-type .tree-node-leaf { fill: #4ade80; }
+
+  /* Tooltip overlay */
+  .forest-tooltip {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 0.78rem;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    max-width: 260px;
+    line-height: 1.5;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  .forest-tooltip.visible { opacity: 1; }
+  .forest-tooltip .tt-num { font-size: 1.1rem; color: var(--accent); font-weight: 500; }
+  .forest-tooltip .tt-fact { color: var(--highlight); margin: 0.3rem 0; }
+  .forest-tooltip .tt-props { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>the <span>forest</span></h1>
+    <a href="index.html" class="back-link">← explorer</a>
+  </div>
+  <div class="controls">
+    <label>from</label>
+    <input type="number" id="startNum" value="1" min="1">
+    <label>to</label>
+    <input type="number" id="endNum" value="120" min="2">
+    <button class="nav-btn" onclick="pageBack()">◀</button>
+    <button class="nav-btn" onclick="pageForward()">▶</button>
+    <label>color</label>
+    <select id="colorMode" onchange="renderForest()">
+      <option value="default">default</option>
+      <option value="depth">by depth</option>
+      <option value="type">by node type</option>
+    </select>
+  </div>
+</header>
+
+<div class="stats" id="statsBar"></div>
+
+<div class="forest" id="forestGrid"></div>
+
+<div class="forest-tooltip" id="forestTooltip"></div>
+
+<script>
+// --- Shared math from index.html ---
+const primeCache = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+const primeSet = new Set(primeCache);
+
+function isPrime(n) {
+  if (n < 2) return false;
+  if (primeSet.has(n)) return true;
+  if (n <= primeCache[primeCache.length-1]) return false;
+  if (n%2===0||n%3===0) return false;
+  for (let i=5;i*i<=n;i+=6) if (n%i===0||(n%(i+2))===0) return false;
+  return true;
+}
+
+function ensurePrimes(upTo) {
+  let c = primeCache[primeCache.length-1]+2;
+  while (primeCache.length < upTo+1) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); }
+    c += 2;
+  }
+}
+
+function primeIndex(p) {
+  if (!isPrime(p)) return -1;
+  ensurePrimes(200);
+  let idx = primeCache.indexOf(p);
+  if (idx >= 0) return idx+1;
+  let c = primeCache[primeCache.length-1]+2;
+  while (true) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); if (c===p) return primeCache.length; }
+    c += 2;
+  }
+}
+
+function factorize(n) {
+  const f=[]; if (n<=1) return f;
+  for (let d=2;d*d<=n;d++) while(n%d===0){f.push(d);n/=d;}
+  if (n>1) f.push(n); return f;
+}
+
+function matulaTree(n) {
+  if (n===1) return {value:1,children:[]};
+  if (isPrime(n)) return {value:n,children:[matulaTree(primeIndex(n))]};
+  return {value:n,children:factorize(n).map(f=>matulaTree(f))};
+}
+
+function treeDepth(node) {
+  if (!node.children.length) return 0;
+  return 1+Math.max(...node.children.map(treeDepth));
+}
+
+function treeSize(node) {
+  return 1+node.children.reduce((s,c)=>s+treeSize(c),0);
+}
+
+function treeLeaves(node) {
+  if (!node.children.length) return 1;
+  return node.children.reduce((s,c)=>s+treeLeaves(c),0);
+}
+
+function maxBranching(node) {
+  const b = node.children.length;
+  if (!b) return 0;
+  return Math.max(b,...node.children.map(maxBranching));
+}
+
+function layoutTree(root) {
+  function computeWidth(node) {
+    if (!node.children.length) { node._w=1; return 1; }
+    const w = node.children.reduce((s,c)=>s+computeWidth(c),0);
+    node._w = Math.max(w,1); return node._w;
+  }
+  computeWidth(root);
+  function assign(node,x,y,width) {
+    node._x=x; node._y=y;
+    if (!node.children.length) return;
+    let cx = x - width/2;
+    for (const ch of node.children) {
+      const cw = (ch._w/node._w)*width;
+      assign(ch, cx+cw/2, y+1, cw);
+      cx += cw;
+    }
+  }
+  assign(root, 0, 0, root._w);
+}
+
+function isPowerOf2(n) { return n>1 && (n&(n-1))===0; }
+
+// --- Forest rendering ---
+function renderForest() {
+  const start = Math.max(1, parseInt(document.getElementById('startNum').value)||1);
+  const end = Math.max(start+1, parseInt(document.getElementById('endNum').value)||120);
+  const count = end - start + 1;
+  const colorMode = document.getElementById('colorMode').value;
+
+  // Determine grid dimensions
+  const cols = Math.ceil(Math.sqrt(count * 1.5));
+  const cellSize = Math.max(60, Math.min(120, Math.floor((window.innerWidth - 64) / cols)));
+
+  const grid = document.getElementById('forestGrid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+  grid.innerHTML = '';
+
+  const tooltip = document.getElementById('forestTooltip');
+
+  let totalNodes = 0, totalDepth = 0, primeCount = 0, maxD = 0, maxDNum = 0;
+
+  for (let n = start; n <= end; n++) {
+    const tree = matulaTree(n);
+    layoutTree(tree);
+    const depth = treeDepth(tree);
+    const size = treeSize(tree);
+    const leaves = treeLeaves(tree);
+    const branch = maxBranching(tree);
+    const prime = isPrime(n);
+
+    totalNodes += size;
+    totalDepth += depth;
+    if (prime) primeCount++;
+    if (depth > maxD) { maxD = depth; maxDNum = n; }
+
+    const cell = document.createElement('div');
+    cell.className = 'tree-cell';
+    if (prime) cell.classList.add('prime');
+    if (isPowerOf2(n)) cell.classList.add('power-of-2');
+    if (colorMode !== 'default') cell.classList.add('color-' + colorMode);
+
+    const svgH = cellSize - 18;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', `0 0 ${cellSize} ${svgH}`);
+    svg.style.height = svgH + 'px';
+
+    renderMiniForestTree(svg, tree, cellSize, svgH, colorMode);
+    cell.appendChild(svg);
+
+    const label = document.createElement('div');
+    label.className = 'tree-cell-label';
+    label.textContent = n;
+    cell.appendChild(label);
+
+    // Tooltip
+    cell.addEventListener('mouseenter', (e) => {
+      const factors = n > 1 ? factorize(n) : [];
+      const factStr = factors.length ? factors.join(' × ') : '—';
+      tooltip.innerHTML = `<div class="tt-num">${n}</div>`
+        + `<div class="tt-fact">${prime ? 'prime' : factStr}</div>`
+        + `<div class="tt-props">${size} nodes · depth ${depth} · ${leaves} leaves · branching ${branch}</div>`;
+      tooltip.classList.add('visible');
+    });
+
+    cell.addEventListener('mousemove', (e) => {
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+    });
+
+    cell.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+
+    // Click to open in explorer
+    cell.addEventListener('click', () => {
+      window.open(`index.html#${n}`, '_blank');
+    });
+
+    grid.appendChild(cell);
+  }
+
+  // Stats
+  const avg = (totalDepth / count).toFixed(1);
+  document.getElementById('statsBar').innerHTML =
+    `<span>range <span class="stat-val">${start}–${end}</span> (${count} numbers)</span>`
+    + `<span>primes <span class="stat-val">${primeCount}</span></span>`
+    + `<span>avg depth <span class="stat-val">${avg}</span></span>`
+    + `<span>deepest <span class="stat-val">${maxDNum}</span> (depth ${maxD})</span>`
+    + `<span>total nodes <span class="stat-val">${totalNodes.toLocaleString()}</span></span>`;
+}
+
+function renderMiniForestTree(svg, tree, W, H, colorMode) {
+  const depth = treeDepth(tree);
+  const size = treeSize(tree);
+  const pad = 6;
+  const r = Math.max(1.5, Math.min(4, 20 / Math.sqrt(size)));
+
+  // Collect positions
+  const positions = [];
+  function collect(node) { positions.push(node); node.children.forEach(collect); }
+  collect(tree);
+
+  let minX = Infinity, maxX = -Infinity;
+  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
+  const xRange = maxX - minX || 1;
+  const yRange = depth || 1;
+  const sx = (W - pad*2) / xRange;
+  const sy = (H - pad*2) / yRange;
+
+  function mx(node) { return pad + (node._x - minX) * sx; }
+  function my(node) { return pad + node._y * sy; }
+
+  // Edges
+  function drawEdges(node) {
+    for (const ch of node.children) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', mx(node)); line.setAttribute('y1', my(node));
+      line.setAttribute('x2', mx(ch)); line.setAttribute('y2', my(ch));
+      line.setAttribute('stroke', '#2a2a4c');
+      line.setAttribute('stroke-width', 0.8);
+      svg.appendChild(line);
+      drawEdges(ch);
+    }
+  }
+  drawEdges(tree);
+
+  // Nodes
+  function drawNodes(node, d) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', mx(node)); c.setAttribute('cy', my(node));
+    c.setAttribute('r', r);
+
+    if (colorMode === 'depth') {
+      const colors = ['#e8a449', '#c87f3a', '#7c6fef', '#5a4fd4', '#3a3a8c', '#2a2a6c', '#1a1a4c'];
+      c.setAttribute('fill', colors[Math.min(d, colors.length - 1)]);
+      c.setAttribute('stroke', 'none');
+    } else if (colorMode === 'type') {
+      if (node.children.length === 0) {
+        c.setAttribute('fill', '#4ade80');
+      } else if (isPrime(node.value)) {
+        c.setAttribute('fill', '#7c6fef');
+      } else {
+        c.setAttribute('fill', '#e8a449');
+      }
+      c.setAttribute('stroke', 'none');
+    } else {
+      c.setAttribute('fill', node.children.length === 0 ? '#7c6fef88' : '#1a1a2e');
+      c.setAttribute('stroke', d === 0 ? '#e8a449' : '#7c6fef');
+      c.setAttribute('stroke-width', d === 0 ? 1.2 : 0.6);
+    }
+
+    svg.appendChild(c);
+    for (const ch of node.children) drawNodes(ch, d + 1);
+  }
+  drawNodes(tree, 0);
+}
+
+function pageBack() {
+  const startEl = document.getElementById('startNum');
+  const endEl = document.getElementById('endNum');
+  const range = parseInt(endEl.value) - parseInt(startEl.value) + 1;
+  const newStart = Math.max(1, parseInt(startEl.value) - range);
+  startEl.value = newStart;
+  endEl.value = newStart + range - 1;
+  renderForest();
+}
+
+function pageForward() {
+  const startEl = document.getElementById('startNum');
+  const endEl = document.getElementById('endNum');
+  const range = parseInt(endEl.value) - parseInt(startEl.value) + 1;
+  const newStart = parseInt(startEl.value) + range;
+  startEl.value = newStart;
+  endEl.value = newStart + range - 1;
+  renderForest();
+}
+
+document.getElementById('startNum').addEventListener('change', renderForest);
+document.getElementById('endNum').addEventListener('change', renderForest);
+window.addEventListener('resize', renderForest);
+
+// Handle hash navigation from explorer
+if (window.location.hash) {
+  const n = parseInt(window.location.hash.slice(1));
+  if (n > 0) {
+    document.getElementById('startNum').value = Math.max(1, n - 60);
+    document.getElementById('endNum').value = n + 60;
+  }
+}
+
+renderForest();
+</script>
+
+</body>
+</html>

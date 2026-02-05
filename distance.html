@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Distance — A Metric on the Multiplicative Structure of Integers</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --node-fill: #1a1a2e;
+    --node-stroke: #7c6fef;
+    --edge-color: #3a3a5c;
+    --highlight: #e8a449;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2rem 2rem 0.5rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin-top: 0.4rem;
+    line-height: 1.5;
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  nav.links {
+    text-align: center;
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+  nav.links a {
+    color: var(--accent);
+    text-decoration: none;
+    margin: 0 0.8rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  nav.links a:hover { opacity: 1; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    flex-wrap: wrap;
+  }
+
+  .operand-input {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .operand-input label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .operand-input input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.2rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    width: 100px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .operand-input input:focus {
+    border-color: var(--accent);
+  }
+
+  .distance-display {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    text-align: center;
+  }
+
+  .distance-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-bottom: 0.2rem;
+  }
+
+  .distance-value {
+    font-size: 1.8rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Main visualization */
+  .main-viz {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .tree-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    min-height: 260px;
+    position: relative;
+  }
+
+  .tree-panel svg {
+    width: 100%;
+    height: 200px;
+  }
+
+  .panel-label {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.8rem;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  .panel-number {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.8rem;
+    font-size: 1.4rem;
+    color: var(--accent);
+  }
+
+  .panel-factor {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .diff-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    min-width: 150px;
+  }
+
+  .diff-title {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .diff-formula {
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .diff-breakdown {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    font-size: 0.75rem;
+    min-width: 140px;
+  }
+
+  .diff-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.3rem 0;
+  }
+
+  .diff-prime { color: var(--text-dim); }
+  .diff-in-a { color: var(--green); }
+  .diff-in-b { color: var(--blue); }
+  .diff-both { color: var(--accent); }
+  .diff-delta { color: var(--orange); font-weight: 500; }
+
+  /* Neighborhood explorer */
+  .neighborhood {
+    margin: 2rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .neighborhood h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .neighborhood-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .radius-slider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .radius-slider label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .radius-slider input[type="range"] {
+    width: 100px;
+    accent-color: var(--accent);
+  }
+
+  .radius-value {
+    font-size: 0.9rem;
+    color: var(--accent);
+    min-width: 1.5rem;
+  }
+
+  .neighborhood-viz {
+    position: relative;
+    height: 400px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .neighborhood-viz svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Heatmap */
+  .heatmap-section {
+    margin: 2rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .heatmap-section h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .heatmap-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+  }
+
+  .heatmap-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .heatmap-grid {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .heatmap-grid svg {
+    width: 100%;
+    height: auto;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .legend-bar {
+    width: 20px;
+    height: 150px;
+    border-radius: 4px;
+  }
+
+  .legend-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 150px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  /* Philosophy section */
+  .philosophy {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    line-height: 1.7;
+    font-size: 0.9rem;
+  }
+
+  .philosophy h2 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .philosophy p {
+    margin: 1rem 0;
+    color: var(--text-dim);
+  }
+
+  .philosophy em {
+    color: var(--text);
+    font-style: normal;
+  }
+
+  .philosophy code {
+    background: var(--surface);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+    color: var(--accent);
+  }
+
+  /* Interesting pairs */
+  .pairs-section {
+    margin: 2rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .pairs-section h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .pairs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .pair-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pair-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .pair-nums {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+
+  .pair-dist {
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-bottom: 0.3rem;
+  }
+
+  .pair-note {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+  }
+
+  @media (max-width: 800px) {
+    .main-viz {
+      grid-template-columns: 1fr;
+    }
+    .diff-panel {
+      order: -1;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tree <span>Distance</span></h1>
+  <p class="subtitle">
+    A metric on the multiplicative structure of integers. Two numbers are "close" if their 
+    prime factorizations differ by little — regardless of how far apart they are on the number line.
+  </p>
+</header>
+
+<nav class="links">
+  <a href="index.html">Explorer</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="forest.html">Forest</a>
+  <a href="arithmetic.html">Arithmetic</a>
+  <a href="distance.html" style="opacity:1">Distance</a>
+</nav>
+
+<div class="controls">
+  <div class="operand-input">
+    <label>a =</label>
+    <input type="number" id="inputA" value="12" min="1" max="10000">
+  </div>
+  <div class="operand-input">
+    <label>b =</label>
+    <input type="number" id="inputB" value="18" min="1" max="10000">
+  </div>
+  <div class="distance-display">
+    <div class="distance-label">d(a, b)</div>
+    <div class="distance-value" id="distValue">2</div>
+  </div>
+</div>
+
+<div class="main-viz">
+  <div class="tree-panel" id="panelA">
+    <div class="panel-label">tree(a)</div>
+    <div class="panel-number" id="numA">12</div>
+    <div class="panel-factor" id="factA">2² × 3</div>
+    <svg id="svgA"></svg>
+  </div>
+  
+  <div class="diff-panel">
+    <div class="diff-title">Prime Factor Difference</div>
+    <div class="diff-formula" id="diffFormula">Σ|e<sub>p</sub>(a) − e<sub>p</sub>(b)|</div>
+    <div class="diff-breakdown" id="diffBreakdown"></div>
+  </div>
+  
+  <div class="tree-panel" id="panelB">
+    <div class="panel-label">tree(b)</div>
+    <div class="panel-number" id="numB">18</div>
+    <div class="panel-factor" id="factB">2 × 3²</div>
+    <svg id="svgB"></svg>
+  </div>
+</div>
+
+<div class="pairs-section">
+  <h2>Interesting Pairs to Explore</h2>
+  <div class="pairs-grid" id="pairsGrid"></div>
+</div>
+
+<div class="neighborhood">
+  <h2>Multiplicative Neighborhood of <span id="neighborCenter">12</span></h2>
+  <div class="neighborhood-controls">
+    <div class="radius-slider">
+      <label>Max distance:</label>
+      <input type="range" id="radiusSlider" min="1" max="6" value="3">
+      <span class="radius-value" id="radiusValue">3</span>
+    </div>
+    <div class="radius-slider">
+      <label>Max number:</label>
+      <input type="range" id="maxNumSlider" min="50" max="500" value="200" step="50">
+      <span class="radius-value" id="maxNumValue">200</span>
+    </div>
+  </div>
+  <div class="neighborhood-viz">
+    <svg id="neighborhoodSvg"></svg>
+  </div>
+</div>
+
+<div class="heatmap-section">
+  <h2>Distance Heatmap: Numbers 1–50</h2>
+  <p class="heatmap-subtitle">
+    Each cell shows d(i, j). Notice how additively adjacent numbers (like 8 and 9) can be 
+    multiplicatively distant, while multiplicatively related numbers cluster.
+  </p>
+  <div class="heatmap-container">
+    <div class="heatmap-grid">
+      <svg id="heatmapSvg" viewBox="0 0 520 520"></svg>
+    </div>
+  </div>
+</div>
+
+<div class="philosophy">
+  <h2>What Tree Distance Reveals</h2>
+  <p>
+    The usual distance between integers — <em>|a - b|</em> — measures how far apart they sit on the 
+    number line. But this ignores structure. The numbers 8 and 9 are adjacent additively, yet 
+    <em>multiplicatively alien</em>: 8 = 2³ and 9 = 3² share nothing.
+  </p>
+  <p>
+    Tree distance measures something different: <em>how similar are the prime factorizations?</em>
+    We define d(a, b) as the sum of absolute differences in prime exponents:
+  </p>
+  <p style="text-align: center; color: var(--accent);">
+    d(a, b) = Σ<sub>p prime</sub> |e<sub>p</sub>(a) − e<sub>p</sub>(b)|
+  </p>
+  <p>
+    This is the L¹ norm in the infinite-dimensional space where each axis is a prime. Every positive 
+    integer is a point in this space; d(a,b) is their Manhattan distance.
+  </p>
+  <p>
+    Some consequences: <code>d(n, 2n) = 1</code> always — multiplying by a prime moves you one step. 
+    <code>d(n, n²) = Ω(n)</code> — squaring can move you arbitrarily far. Powers of a single prime 
+    form a line: d(2, 4) = d(4, 8) = d(8, 16) = 1. But different primes are orthogonal: d(2, 3) = 2.
+  </p>
+  <p>
+    The neighborhood visualization shows which numbers are "close" to a given center. Notice how the 
+    neighbors of 12 = 2² × 3 include 6, 24, 4, 36 — numbers related by multiplying or dividing by 
+    small primes — but not 11 or 13 (primes far from 12's structure).
+  </p>
+  <p>
+    This metric has been studied in various forms: it appears in the analysis of the 
+    <em>multiplicative group</em> of integers, in approximation theory, and connects to the 
+    <em>radical</em> of a number (the product of its distinct prime factors). Here we make it visual.
+  </p>
+</div>
+
+<footer>
+  Tree Distance — Part of <a href="index.html" style="color: var(--accent);">Number Trees</a>
+</footer>
+
+<script>
+// --- Prime utilities ---
+const primeCache = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+const primeSet = new Set(primeCache);
+
+function isPrime(n) {
+  if (n < 2) return false;
+  if (primeSet.has(n)) return true;
+  if (n <= primeCache[primeCache.length-1]) return false;
+  if (n%2===0 || n%3===0) return false;
+  for (let i=5; i*i<=n; i+=6)
+    if (n%i===0 || n%(i+2)===0) return false;
+  return true;
+}
+
+function ensurePrimes(upTo) {
+  let c = primeCache[primeCache.length-1]+2;
+  while (primeCache.length < upTo+1) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); }
+    c+=2;
+  }
+}
+
+function nthPrime(n) { ensurePrimes(n); return primeCache[n-1]; }
+
+function primeIndex(p) {
+  if (!isPrime(p)) return -1;
+  ensurePrimes(200);
+  let idx = primeCache.indexOf(p);
+  if (idx >= 0) return idx+1;
+  let c = primeCache[primeCache.length-1]+2;
+  while (true) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); if (c===p) return primeCache.length; }
+    c+=2;
+  }
+}
+
+function factorize(n) {
+  const f = [];
+  if (n <= 1) return f;
+  for (let d=2; d*d<=n; d++) while (n%d===0) { f.push(d); n/=d; }
+  if (n>1) f.push(n);
+  return f;
+}
+
+function factorMap(n) {
+  const m = {};
+  if (n <= 1) return m;
+  factorize(n).forEach(f => m[f] = (m[f]||0)+1);
+  return m;
+}
+
+function factorizationHTML(n) {
+  if (n === 1) return '1';
+  const f = factorize(n);
+  const c = {};
+  f.forEach(x => c[x] = (c[x]||0)+1);
+  return Object.entries(c).sort((a,b)=>a[0]-b[0]).map(([b,e]) => e>1 ? `${b}<sup>${e}</sup>` : b).join(' × ');
+}
+
+// --- Tree Distance ---
+function treeDistance(a, b) {
+  const mapA = factorMap(a);
+  const mapB = factorMap(b);
+  const allPrimes = new Set([...Object.keys(mapA), ...Object.keys(mapB)]);
+  let dist = 0;
+  for (const p of allPrimes) {
+    dist += Math.abs((mapA[p] || 0) - (mapB[p] || 0));
+  }
+  return dist;
+}
+
+function distanceBreakdown(a, b) {
+  const mapA = factorMap(a);
+  const mapB = factorMap(b);
+  const allPrimes = [...new Set([...Object.keys(mapA), ...Object.keys(mapB)])].map(Number).sort((x,y)=>x-y);
+  return allPrimes.map(p => ({
+    prime: p,
+    inA: mapA[p] || 0,
+    inB: mapB[p] || 0,
+    delta: Math.abs((mapA[p] || 0) - (mapB[p] || 0))
+  }));
+}
+
+// --- Matula tree ---
+function matulaTree(n) {
+  if (n === 1) return { value: 1, children: [], label: '1' };
+  if (isPrime(n)) {
+    const k = primeIndex(n);
+    return { value: n, children: [matulaTree(k)], label: String(n) };
+  }
+  const factors = factorize(n);
+  return { value: n, children: factors.map(f => matulaTree(f)), label: String(n) };
+}
+
+// --- Tree metrics ---
+function treeDepth(node) {
+  if (!node.children.length) return 0;
+  return 1 + Math.max(...node.children.map(treeDepth));
+}
+function treeSize(node) {
+  return 1 + node.children.reduce((s,c) => s + treeSize(c), 0);
+}
+
+// --- Layout ---
+function layoutTree(root) {
+  const positions = [];
+  function computeWidth(node) {
+    if (!node.children.length) { node._width = 1; return 1; }
+    const w = node.children.reduce((s,c) => s + computeWidth(c), 0);
+    node._width = Math.max(w, 1);
+    return node._width;
+  }
+  computeWidth(root);
+  function assign(node, x, y, width) {
+    node._x = x; node._y = y;
+    positions.push(node);
+    if (!node.children.length) return;
+    let cx = x - width/2;
+    for (const child of node.children) {
+      const cw = (child._width / node._width) * width;
+      assign(child, cx + cw/2, y+1, cw);
+      cx += cw;
+    }
+  }
+  assign(root, 0, 0, root._width);
+  return positions;
+}
+
+// --- SVG Rendering ---
+function renderTreeSVG(svgEl, n, options = {}) {
+  const W = svgEl.clientWidth || 280;
+  const H = svgEl.clientHeight || 200;
+  svgEl.innerHTML = '';
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if (n < 1 || n > 10000) {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.textContent = n < 1 ? '—' : 'too large';
+    t.setAttribute('x', W/2); t.setAttribute('y', H/2);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', 'var(--text-dim)');
+    t.setAttribute('font-size', '14');
+    svgEl.appendChild(t);
+    return;
+  }
+
+  const tree = matulaTree(n);
+  const positions = layoutTree(tree);
+  const depth = treeDepth(tree);
+  const size = treeSize(tree);
+
+  const pad = 30;
+  const nodeR = Math.max(4, Math.min(12, 80 / Math.sqrt(size)));
+
+  let minX = Infinity, maxX = -Infinity;
+  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
+  const xRange = maxX - minX || 1;
+
+  function sx(x) { return pad + (x - minX) / xRange * (W - 2*pad); }
+  function sy(y) { return pad + y / (depth || 1) * (H - 2*pad); }
+
+  // Edges
+  positions.forEach(node => {
+    node.children.forEach(child => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', sx(node._x));
+      line.setAttribute('y1', sy(node._y));
+      line.setAttribute('x2', sx(child._x));
+      line.setAttribute('y2', sy(child._y));
+      line.setAttribute('stroke', options.edgeColor || 'var(--edge-color)');
+      line.setAttribute('stroke-width', 1.5);
+      svgEl.appendChild(line);
+    });
+  });
+
+  // Nodes
+  positions.forEach(node => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', sx(node._x));
+    circle.setAttribute('cy', sy(node._y));
+    circle.setAttribute('r', nodeR);
+    circle.setAttribute('fill', options.nodeFill || 'var(--node-fill)');
+    circle.setAttribute('stroke', options.nodeStroke || 'var(--node-stroke)');
+    circle.setAttribute('stroke-width', 1.5);
+    g.appendChild(circle);
+
+    if (nodeR >= 6 && size <= 30) {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.textContent = node.label;
+      text.setAttribute('x', sx(node._x));
+      text.setAttribute('y', sy(node._y) + 3);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', Math.min(10, nodeR * 1.2));
+      text.setAttribute('fill', 'var(--text)');
+      g.appendChild(text);
+    }
+    svgEl.appendChild(g);
+  });
+}
+
+// --- Interesting pairs ---
+const interestingPairs = [
+  { a: 8, b: 9, note: "Adjacent but orthogonal: 2³ vs 3²" },
+  { a: 6, b: 10, note: "Share only 2: d = 2" },
+  { a: 12, b: 18, note: "Both 2·3ⁿ family" },
+  { a: 30, b: 42, note: "Both squarefree, share 2 and 3" },
+  { a: 64, b: 729, note: "Pure prime powers: 2⁶ vs 3⁶" },
+  { a: 100, b: 99, note: "Adjacent: 2²·5² vs 3²·11" },
+  { a: 1, b: 60, note: "1 is origin; d = Ω(60)" },
+  { a: 24, b: 36, note: "Highly composite neighbors" },
+  { a: 2, b: 3, note: "First two primes: orthogonal" },
+  { a: 6, b: 6, note: "Self-distance is always 0" },
+  { a: 15, b: 35, note: "Share only 5" },
+  { a: 16, b: 81, note: "Pure powers: 2⁴ vs 3⁴" }
+];
+
+function renderPairs() {
+  const grid = document.getElementById('pairsGrid');
+  grid.innerHTML = '';
+  interestingPairs.forEach(pair => {
+    const d = treeDistance(pair.a, pair.b);
+    const card = document.createElement('div');
+    card.className = 'pair-card';
+    card.innerHTML = `
+      <div class="pair-nums">${pair.a} ↔ ${pair.b}</div>
+      <div class="pair-dist">d = ${d}</div>
+      <div class="pair-note">${pair.note}</div>
+    `;
+    card.onclick = () => {
+      document.getElementById('inputA').value = pair.a;
+      document.getElementById('inputB').value = pair.b;
+      update();
+    };
+    grid.appendChild(card);
+  });
+}
+
+// --- Neighborhood visualization ---
+function renderNeighborhood(center, maxDist, maxNum) {
+  const svg = document.getElementById('neighborhoodSvg');
+  const W = svg.clientWidth || 800;
+  const H = svg.clientHeight || 400;
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  
+  document.getElementById('neighborCenter').textContent = center;
+
+  // Find all numbers within distance
+  const neighbors = [];
+  for (let n = 1; n <= maxNum; n++) {
+    const d = treeDistance(center, n);
+    if (d <= maxDist) {
+      neighbors.push({ n, d });
+    }
+  }
+
+  // Layout: concentric rings by distance
+  const rings = {};
+  neighbors.forEach(nb => {
+    if (!rings[nb.d]) rings[nb.d] = [];
+    rings[nb.d].push(nb.n);
+  });
+
+  const cx = W / 2;
+  const cy = H / 2;
+  const maxRing = Math.max(...Object.keys(rings).map(Number));
+  const ringSpacing = Math.min(80, (Math.min(W, H) / 2 - 40) / (maxRing + 1));
+
+  // Draw ring circles
+  for (let d = 1; d <= maxRing; d++) {
+    const r = d * ringSpacing;
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', cx);
+    circle.setAttribute('cy', cy);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', 'var(--border)');
+    circle.setAttribute('stroke-dasharray', '4,4');
+    svg.appendChild(circle);
+
+    // Ring label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.textContent = `d=${d}`;
+    label.setAttribute('x', cx + r + 5);
+    label.setAttribute('y', cy + 4);
+    label.setAttribute('font-size', '10');
+    label.setAttribute('fill', 'var(--text-dim)');
+    svg.appendChild(label);
+  }
+
+  // Place numbers
+  Object.entries(rings).forEach(([dist, nums]) => {
+    const d = Number(dist);
+    const r = d * ringSpacing;
+    const count = nums.length;
+    
+    nums.forEach((n, i) => {
+      const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      
+      const isCenter = n === center;
+      const nodeR = isCenter ? 16 : 12;
+      
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.style.cursor = 'pointer';
+      
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', nodeR);
+      circle.setAttribute('fill', isCenter ? 'var(--accent)' : 'var(--surface)');
+      circle.setAttribute('stroke', isCenter ? 'var(--accent)' : 'var(--node-stroke)');
+      circle.setAttribute('stroke-width', 2);
+      g.appendChild(circle);
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.textContent = n;
+      text.setAttribute('x', x);
+      text.setAttribute('y', y + 4);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', n >= 100 ? '8' : '10');
+      text.setAttribute('fill', isCenter ? '#fff' : 'var(--text)');
+      g.appendChild(text);
+      
+      g.onclick = () => {
+        document.getElementById('inputA').value = center;
+        document.getElementById('inputB').value = n;
+        update();
+      };
+      
+      svg.appendChild(g);
+    });
+  });
+}
+
+// --- Heatmap ---
+function renderHeatmap() {
+  const svg = document.getElementById('heatmapSvg');
+  const N = 50;
+  const cellSize = 10;
+  const offset = 20;
+
+  // Compute max distance for color scaling
+  let maxDist = 0;
+  for (let i = 1; i <= N; i++) {
+    for (let j = 1; j <= N; j++) {
+      maxDist = Math.max(maxDist, treeDistance(i, j));
+    }
+  }
+
+  // Color function: 0 = dark purple, max = bright yellow
+  function distColor(d) {
+    const t = d / maxDist;
+    const h = 260 - t * 200; // purple to yellow
+    const s = 70 + t * 30;
+    const l = 15 + t * 55;
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+
+  // Draw cells
+  for (let i = 1; i <= N; i++) {
+    for (let j = 1; j <= N; j++) {
+      const d = treeDistance(i, j);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', offset + (j-1) * cellSize);
+      rect.setAttribute('y', offset + (i-1) * cellSize);
+      rect.setAttribute('width', cellSize);
+      rect.setAttribute('height', cellSize);
+      rect.setAttribute('fill', distColor(d));
+      rect.style.cursor = 'pointer';
+      rect.onclick = () => {
+        document.getElementById('inputA').value = i;
+        document.getElementById('inputB').value = j;
+        update();
+      };
+      svg.appendChild(rect);
+    }
+  }
+
+  // Axis labels (every 10)
+  for (let i = 10; i <= N; i += 10) {
+    const labelX = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    labelX.textContent = i;
+    labelX.setAttribute('x', offset + (i-0.5) * cellSize);
+    labelX.setAttribute('y', 15);
+    labelX.setAttribute('text-anchor', 'middle');
+    labelX.setAttribute('font-size', '8');
+    labelX.setAttribute('fill', 'var(--text-dim)');
+    svg.appendChild(labelX);
+
+    const labelY = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    labelY.textContent = i;
+    labelY.setAttribute('x', 15);
+    labelY.setAttribute('y', offset + (i-0.5) * cellSize + 3);
+    labelY.setAttribute('text-anchor', 'middle');
+    labelY.setAttribute('font-size', '8');
+    labelY.setAttribute('fill', 'var(--text-dim)');
+    svg.appendChild(labelY);
+  }
+}
+
+// --- Main update ---
+function update() {
+  const a = Math.max(1, parseInt(document.getElementById('inputA').value) || 1);
+  const b = Math.max(1, parseInt(document.getElementById('inputB').value) || 1);
+
+  const dist = treeDistance(a, b);
+  document.getElementById('distValue').textContent = dist;
+  document.getElementById('numA').textContent = a;
+  document.getElementById('numB').textContent = b;
+  document.getElementById('factA').innerHTML = factorizationHTML(a);
+  document.getElementById('factB').innerHTML = factorizationHTML(b);
+
+  // Render trees
+  renderTreeSVG(document.getElementById('svgA'), a, { nodeStroke: 'var(--green)' });
+  renderTreeSVG(document.getElementById('svgB'), b, { nodeStroke: 'var(--blue)' });
+
+  // Breakdown
+  const breakdown = distanceBreakdown(a, b);
+  const breakdownDiv = document.getElementById('diffBreakdown');
+  if (breakdown.length === 0) {
+    breakdownDiv.innerHTML = '<div style="color: var(--text-dim); text-align: center;">d(1, 1) = 0</div>';
+  } else {
+    breakdownDiv.innerHTML = breakdown.map(row => {
+      const deltaClass = row.delta > 0 ? 'diff-delta' : 'diff-both';
+      return `<div class="diff-row">
+        <span class="diff-prime">p=${row.prime}</span>
+        <span class="diff-in-a">${row.inA}</span>
+        <span class="diff-in-b">${row.inB}</span>
+        <span class="${deltaClass}">|${row.delta}|</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Update neighborhood
+  const radius = parseInt(document.getElementById('radiusSlider').value);
+  const maxNum = parseInt(document.getElementById('maxNumSlider').value);
+  renderNeighborhood(a, radius, maxNum);
+}
+
+// --- Event listeners ---
+document.getElementById('inputA').addEventListener('input', update);
+document.getElementById('inputB').addEventListener('input', update);
+document.getElementById('radiusSlider').addEventListener('input', function() {
+  document.getElementById('radiusValue').textContent = this.value;
+  update();
+});
+document.getElementById('maxNumSlider').addEventListener('input', function() {
+  document.getElementById('maxNumValue').textContent = this.value;
+  update();
+});
+
+// --- Initialize ---
+renderPairs();
+renderHeatmap();
+update();
+</script>
+
+</body>
+</html>

@@ -369,6 +369,8 @@
   <button class="nav-btn" onclick="navigate(1)">→</button>
   <button class="random-btn" onclick="randomNumber()">random</button>
   <a href="forest.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">forest view →</a>
+  <a href="mertens.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">möbius landscape →</a>
+  <a href="arithmetic.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">tree arithmetic →</a>
 </div>
 
 <div class="main-content">
@@ -421,6 +423,27 @@
         <span class="info-label">Tree type</span>
         <span class="info-value highlight" id="infoTreeType">—</span>
       </div>
+    </div>
+
+    <div class="info-section">
+      <h3>Arithmetic Functions</h3>
+      <div class="info-row">
+        <span class="info-label">μ(n) Möbius</span>
+        <span class="info-value" id="infoMobius">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">λ(n) Liouville</span>
+        <span class="info-value" id="infoLiouville">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Ω(n) prime factors</span>
+        <span class="info-value" id="infoOmegaBig">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">ω(n) distinct primes</span>
+        <span class="info-value" id="infoOmegaSmall">—</span>
+      </div>
+      <p class="tree-description" id="infoArithDesc" style="margin-top:0.4rem;font-size:0.72rem;color:var(--text-dim)"></p>
     </div>
 
     <div class="info-section">
@@ -707,6 +730,22 @@ function renderTree(tree, n) {
 }
 
 // --- Info panel ---
+// --- Arithmetic functions ---
+function arithmeticFunctions(n) {
+  if (n <= 0) return { mu: 0, lambda: 1, bigOmega: 0, smallOmega: 0 };
+  if (n === 1) return { mu: 1, lambda: 1, bigOmega: 0, smallOmega: 0 };
+  const factors = factorize(n);
+  const bigOmega = factors.length; // total prime factors with multiplicity
+  const distinctPrimes = new Set(factors);
+  const smallOmega = distinctPrimes.size; // distinct prime factors
+  // μ(n): 0 if squared factor, else (-1)^ω(n)
+  const isSquareFree = bigOmega === smallOmega;
+  const mu = isSquareFree ? (smallOmega % 2 === 0 ? 1 : -1) : 0;
+  // λ(n) = (-1)^Ω(n)
+  const lambda = bigOmega % 2 === 0 ? 1 : -1;
+  return { mu, lambda, bigOmega, smallOmega };
+}
+
 function updateInfo(n, tree) {
   document.getElementById('infoValue').textContent = n.toLocaleString();
   document.getElementById('infoMatula').textContent = n;
@@ -719,6 +758,28 @@ function updateInfo(n, tree) {
 
   const type = treeType(n, tree);
   document.getElementById('infoTreeType').textContent = type;
+
+  // Arithmetic functions
+  const af = arithmeticFunctions(n);
+  const muEl = document.getElementById('infoMobius');
+  muEl.textContent = af.mu === 0 ? '0 (not square-free)' : af.mu > 0 ? '+1' : '−1';
+  muEl.style.color = af.mu === 0 ? 'var(--text-dim)' : af.mu > 0 ? '#4ade80' : '#f87171';
+  const lamEl = document.getElementById('infoLiouville');
+  lamEl.textContent = af.lambda > 0 ? '+1' : '−1';
+  lamEl.style.color = af.lambda > 0 ? '#4ade80' : '#f87171';
+  document.getElementById('infoOmegaBig').textContent = af.bigOmega;
+  document.getElementById('infoOmegaSmall').textContent = af.smallOmega;
+
+  // Tree interpretation of arithmetic functions
+  let arithDesc = '';
+  if (n === 1) {
+    arithDesc = 'The empty tree: all functions at their base values.';
+  } else if (af.mu === 0) {
+    arithDesc = 'μ = 0: this number has a repeated prime factor, meaning the root has duplicate subtrees. Manchon (2026) shows this vanishing connects to cancellation in the Mertens function.';
+  } else {
+    arithDesc = `Square-free: all ${af.smallOmega} prime factor${af.smallOmega > 1 ? 's are' : ' is'} distinct, so root subtrees are all unique. μ oscillates as (−1)^ω. λ = (−1)^Ω tracks parity of total prime weight.`;
+  }
+  document.getElementById('infoArithDesc').textContent = arithDesc;
 
   // Description
   let desc = '';

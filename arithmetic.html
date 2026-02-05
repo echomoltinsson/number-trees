@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Arithmetic — Operations in the Forest of Integers</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --node-fill: #1a1a2e;
+    --node-stroke: #7c6fef;
+    --edge-color: #3a3a5c;
+    --highlight: #e8a449;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2rem 2rem 0.5rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin-top: 0.4rem;
+    line-height: 1.5;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  nav.links {
+    text-align: center;
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+  nav.links a {
+    color: var(--accent);
+    text-decoration: none;
+    margin: 0 0.8rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  nav.links a:hover { opacity: 1; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 1rem 2rem;
+    flex-wrap: wrap;
+  }
+
+  .operand-input {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .operand-input label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .operand-input input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.2rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    width: 120px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .operand-input input:focus {
+    border-color: var(--accent);
+  }
+
+  .op-selector {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .op-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .op-btn:hover {
+    color: var(--text);
+    background: var(--border);
+  }
+
+  .op-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .swap-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .swap-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* Visualization grid */
+  .viz-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0;
+    padding: 0 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .tree-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem;
+    text-align: center;
+    min-height: 260px;
+  }
+
+  .tree-panel .panel-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.3rem;
+  }
+
+  .tree-panel .panel-number {
+    font-size: 1.3rem;
+    color: var(--highlight);
+    margin-bottom: 0.2rem;
+  }
+
+  .tree-panel .panel-factor {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .tree-panel svg {
+    width: 100%;
+    height: 200px;
+    display: block;
+  }
+
+  .op-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--accent);
+    padding: 0 0.3rem;
+    padding-top: 80px;
+  }
+
+  /* Info section */
+  .insight {
+    max-width: 800px;
+    margin: 1.5rem auto;
+    padding: 0 2rem;
+  }
+
+  .insight-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+  }
+
+  .insight-box h3 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .insight-box p {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .insight-box p:last-child {
+    margin-bottom: 0;
+  }
+
+  .insight-box .dim { color: var(--text-dim); }
+  .insight-box .hl { color: var(--highlight); }
+  .insight-box .gr { color: var(--green); }
+
+  /* Comparison table */
+  .compare-section {
+    max-width: 900px;
+    margin: 1.5rem auto;
+    padding: 0 2rem;
+  }
+
+  .compare-section h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .compare-card:hover {
+    border-color: var(--accent);
+  }
+
+  .compare-card .op-name {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+  }
+
+  .compare-card .op-result {
+    font-size: 1.1rem;
+    color: var(--highlight);
+  }
+
+  .compare-card svg {
+    width: 100%;
+    height: 80px;
+    display: block;
+    margin-top: 0.4rem;
+  }
+
+  .compare-card .factor-text {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+  }
+
+  /* Philosophical section */
+  .philosophy {
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 0 2rem 3rem;
+  }
+
+  .philosophy h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+
+  .philosophy p {
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  .philosophy em { color: var(--text); font-style: normal; }
+
+  /* Responsive */
+  @media (max-width: 800px) {
+    .viz-grid {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      padding: 0 1rem;
+    }
+    .op-arrow {
+      padding-top: 0;
+      font-size: 1.2rem;
+      transform: rotate(90deg);
+      padding: 0.3rem;
+    }
+    .compare-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .tree-panel { min-height: 180px; }
+    .tree-panel svg { height: 150px; }
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tree-panel, .insight-box, .compare-card {
+    animation: fadeIn 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tree <span>Arithmetic</span></h1>
+  <p class="subtitle">
+    In Matula's bijection, every natural number is a rooted tree. Multiplication merges children.
+    GCD finds shared structure. Addition? Addition creates chaos.
+  </p>
+</header>
+
+<nav class="links">
+  <a href="index.html">Explorer</a>
+  <a href="forest.html">Forest</a>
+  <a href="mertens.html">Möbius Landscape</a>
+  <a href="arithmetic.html">Arithmetic</a>
+</nav>
+
+<div class="controls">
+  <div class="operand-input">
+    <label>a</label>
+    <input type="number" id="inputA" value="6" min="1" max="10000">
+  </div>
+  <div class="op-selector">
+    <button class="op-btn active" data-op="mul">×</button>
+    <button class="op-btn" data-op="gcd">gcd</button>
+    <button class="op-btn" data-op="lcm">lcm</button>
+    <button class="op-btn" data-op="add">+</button>
+  </div>
+  <div class="operand-input">
+    <label>b</label>
+    <input type="number" id="inputB" value="10" min="1" max="10000">
+  </div>
+  <button class="swap-btn" id="swapBtn" title="Swap a and b">⇄</button>
+</div>
+
+<div class="viz-grid">
+  <div class="tree-panel" id="panelA">
+    <div class="panel-label">a</div>
+    <div class="panel-number" id="numA">6</div>
+    <div class="panel-factor" id="factA">2 × 3</div>
+    <svg id="svgA"></svg>
+  </div>
+  <div class="op-arrow" id="opSymbol">×</div>
+  <div class="tree-panel" id="panelB">
+    <div class="panel-label">b</div>
+    <div class="panel-number" id="numB">10</div>
+    <div class="panel-factor" id="factB">2 × 5</div>
+    <svg id="svgB"></svg>
+  </div>
+  <div class="op-arrow">=</div>
+  <div class="tree-panel" id="panelR">
+    <div class="panel-label">result</div>
+    <div class="panel-number" id="numR">60</div>
+    <div class="panel-factor" id="factR">2² × 3 × 5</div>
+    <svg id="svgR"></svg>
+  </div>
+</div>
+
+<div class="insight" id="insightContainer">
+  <div class="insight-box" id="insightBox"></div>
+</div>
+
+<div class="compare-section">
+  <h2>All Operations at a Glance</h2>
+  <div class="compare-grid" id="compareGrid"></div>
+</div>
+
+<div class="philosophy">
+  <h2>Why Multiplication is Natural and Addition is Not</h2>
+  <p>
+    In the Matula world, multiplication is a <em>structural operation</em>. To multiply two numbers,
+    you combine the children of their trees into one root. The structure of each operand is
+    <em>preserved</em> — you can still find tree(a) and tree(b) inside tree(a × b) by looking at its branches.
+  </p>
+  <p>
+    GCD and LCM are similarly structural: GCD takes the <em>intersection</em> of prime factors (keep only
+    shared branches, minimum multiplicity), while LCM takes the <em>union</em> (keep all branches, maximum
+    multiplicity). Both produce trees whose shape is predictable from the inputs.
+  </p>
+  <p>
+    Addition breaks this completely. <em>a + b</em> creates a number whose prime factorization bears
+    no systematic relationship to the factorizations of a and b. The tree for 6 + 10 = 16 = 2⁴
+    looks nothing like either tree(6) or tree(10). You can't find the addends in the sum.
+  </p>
+  <p>
+    This is the deep asymmetry of number theory made visible: the multiplicative structure of the
+    integers is <em>tree-shaped</em>, clean, decomposable. The additive structure is something else entirely.
+    Mathematicians have spent centuries trying to understand how these two structures interact — it's
+    the heart of problems like Goldbach's conjecture, the twin prime conjecture, and the distribution
+    of primes. The trees make this tension <em>visible</em>.
+  </p>
+</div>
+
+<script>
+// --- Prime utilities ---
+const primeCache = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+const primeSet = new Set(primeCache);
+
+function isPrime(n) {
+  if (n < 2) return false;
+  if (primeSet.has(n)) return true;
+  if (n <= primeCache[primeCache.length-1]) return false;
+  if (n%2===0 || n%3===0) return false;
+  for (let i=5; i*i<=n; i+=6)
+    if (n%i===0 || n%(i+2)===0) return false;
+  return true;
+}
+
+function ensurePrimes(upTo) {
+  let c = primeCache[primeCache.length-1]+2;
+  while (primeCache.length < upTo+1) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); }
+    c+=2;
+  }
+}
+
+function nthPrime(n) { ensurePrimes(n); return primeCache[n-1]; }
+
+function primeIndex(p) {
+  if (!isPrime(p)) return -1;
+  ensurePrimes(200);
+  let idx = primeCache.indexOf(p);
+  if (idx >= 0) return idx+1;
+  let c = primeCache[primeCache.length-1]+2;
+  while (true) {
+    if (isPrime(c)) { primeCache.push(c); primeSet.add(c); if (c===p) return primeCache.length; }
+    c+=2;
+  }
+}
+
+function factorize(n) {
+  const f = [];
+  if (n <= 1) return f;
+  for (let d=2; d*d<=n; d++) while (n%d===0) { f.push(d); n/=d; }
+  if (n>1) f.push(n);
+  return f;
+}
+
+function factorMap(n) {
+  const m = {};
+  if (n <= 1) return m;
+  factorize(n).forEach(f => m[f] = (m[f]||0)+1);
+  return m;
+}
+
+function factorizationHTML(n) {
+  if (n === 1) return '1';
+  const f = factorize(n);
+  const c = {};
+  f.forEach(x => c[x] = (c[x]||0)+1);
+  return Object.entries(c).map(([b,e]) => e>1 ? `${b}<sup>${e}</sup>` : b).join(' × ');
+}
+
+function fromFactorMap(m) {
+  let n = 1;
+  for (const [p, e] of Object.entries(m)) n *= Math.pow(parseInt(p), e);
+  return Math.round(n);
+}
+
+// --- Arithmetic operations ---
+function gcd(a, b) { while (b) { [a,b] = [b, a%b]; } return a; }
+function lcm(a, b) { return (a / gcd(a,b)) * b; }
+
+// --- Matula tree ---
+function matulaTree(n) {
+  if (n === 1) return { value: 1, children: [], label: '1' };
+  if (isPrime(n)) {
+    const k = primeIndex(n);
+    return { value: n, children: [matulaTree(k)], label: String(n) };
+  }
+  const factors = factorize(n);
+  return { value: n, children: factors.map(f => matulaTree(f)), label: String(n) };
+}
+
+// --- Tree metrics ---
+function treeDepth(node) {
+  if (!node.children.length) return 0;
+  return 1 + Math.max(...node.children.map(treeDepth));
+}
+function treeSize(node) {
+  return 1 + node.children.reduce((s,c) => s + treeSize(c), 0);
+}
+
+// --- Layout ---
+function layoutTree(root) {
+  const positions = [];
+  function computeWidth(node) {
+    if (!node.children.length) { node._width = 1; return 1; }
+    const w = node.children.reduce((s,c) => s + computeWidth(c), 0);
+    node._width = Math.max(w, 1);
+    return node._width;
+  }
+  computeWidth(root);
+  function assign(node, x, y, width) {
+    node._x = x; node._y = y;
+    positions.push(node);
+    if (!node.children.length) return;
+    let cx = x - width/2;
+    for (const child of node.children) {
+      const cw = (child._width / node._width) * width;
+      assign(child, cx + cw/2, y+1, cw);
+      cx += cw;
+    }
+  }
+  assign(root, 0, 0, root._width);
+  return positions;
+}
+
+// --- SVG Rendering ---
+function renderTreeSVG(svgEl, n, options = {}) {
+  const W = svgEl.clientWidth || 280;
+  const H = svgEl.clientHeight || 200;
+  svgEl.innerHTML = '';
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if (n < 1 || n > 100000) {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.textContent = n < 1 ? '—' : 'too large';
+    t.setAttribute('x', W/2); t.setAttribute('y', H/2);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', 'var(--text-dim)');
+    t.setAttribute('font-size', '14');
+    svgEl.appendChild(t);
+    return;
+  }
+
+  const tree = matulaTree(n);
+  const positions = layoutTree(tree);
+  const depth = treeDepth(tree);
+  const size = treeSize(tree);
+
+  const pad = 30;
+  const nodeR = Math.max(4, Math.min(14, 100 / Math.sqrt(size)));
+
+  let minX = Infinity, maxX = -Infinity;
+  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
+  const xRange = maxX - minX || 1;
+  const yRange = depth || 1;
+  const sx = (W - pad*2) / xRange;
+  const sy = (H - pad*2) / yRange;
+  const tx = node => pad + (node._x - minX) * sx;
+  const ty = node => pad + node._y * sy;
+
+  const strokeColor = options.color || 'var(--node-stroke)';
+  const rootColor = options.rootColor || 'var(--highlight)';
+
+  // Edges
+  function drawEdges(node) {
+    for (const child of node.children) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const x1=tx(node), y1=ty(node), x2=tx(child), y2=ty(child), mY=(y1+y2)/2;
+      p.setAttribute('d', `M${x1},${y1} C${x1},${mY} ${x2},${mY} ${x2},${y2}`);
+      p.setAttribute('stroke', 'var(--edge-color)');
+      p.setAttribute('stroke-width', 1.5);
+      p.setAttribute('fill', 'none');
+      svgEl.appendChild(p);
+      drawEdges(child);
+    }
+  }
+  drawEdges(tree);
+
+  // Nodes
+  function drawNodes(node, isRoot) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', tx(node)); c.setAttribute('cy', ty(node));
+    c.setAttribute('r', nodeR);
+    c.setAttribute('fill', node.children.length === 0 ? strokeColor + '66' : 'var(--node-fill)');
+    c.setAttribute('stroke', isRoot ? rootColor : strokeColor);
+    c.setAttribute('stroke-width', isRoot ? 2 : 1.5);
+    svgEl.appendChild(c);
+
+    if (size <= 20) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.textContent = node.value;
+      t.setAttribute('x', tx(node)); t.setAttribute('y', ty(node)+4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('fill', 'var(--text)');
+      t.setAttribute('font-size', Math.max(7, nodeR * 0.7));
+      t.setAttribute('font-family', 'inherit');
+      svgEl.appendChild(t);
+    }
+
+    for (const child of node.children) drawNodes(child, false);
+  }
+  drawNodes(tree, true);
+}
+
+function renderMiniSVG(svgEl, n) {
+  const W = 100, H = 70;
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = '';
+
+  if (n < 1 || n > 100000) return;
+
+  const tree = matulaTree(n);
+  const positions = layoutTree(tree);
+  const depth = treeDepth(tree);
+  const size = treeSize(tree);
+  const pad = 8;
+  const r = Math.max(2, Math.min(4, 20/Math.sqrt(size)));
+
+  let minX = Infinity, maxX = -Infinity;
+  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
+  const xRange = maxX - minX || 1;
+  const yRange = depth || 1;
+  const sx = (W-pad*2)/xRange, sy = (H-pad*2)/yRange;
+  const tx = node => pad + (node._x - minX) * sx;
+  const ty = node => pad + node._y * sy;
+
+  function drawE(node) {
+    for (const child of node.children) {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', tx(node)); l.setAttribute('y1', ty(node));
+      l.setAttribute('x2', tx(child)); l.setAttribute('y2', ty(child));
+      l.setAttribute('stroke', '#3a3a5c'); l.setAttribute('stroke-width', 1);
+      svgEl.appendChild(l);
+      drawE(child);
+    }
+  }
+  drawE(tree);
+
+  function drawN(node, isR) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', tx(node)); c.setAttribute('cy', ty(node));
+    c.setAttribute('r', r);
+    c.setAttribute('fill', node.children.length===0 ? '#7c6fef99' : '#1a1a2e');
+    c.setAttribute('stroke', isR ? '#e8a449' : '#7c6fef');
+    c.setAttribute('stroke-width', isR ? 1.5 : 1);
+    svgEl.appendChild(c);
+    for (const child of node.children) drawN(child, false);
+  }
+  drawN(tree, true);
+}
+
+// --- Insights ---
+function generateInsight(a, b, op) {
+  const box = document.getElementById('insightBox');
+  const fA = factorMap(a), fB = factorMap(b);
+
+  if (op === 'mul') {
+    const result = a * b;
+    if (result > 100000) {
+      box.innerHTML = `<h3>× Multiplication — Grafting</h3>
+        <p>Result ${a} × ${b} = ${result.toLocaleString()} is too large to render, but the principle is clear:
+        every child branch of tree(${a}) and tree(${b}) would become a child of the result's root.</p>`;
+      return;
+    }
+    const fR = factorMap(result);
+    const shared = Object.keys(fA).filter(p => fB[p]);
+
+    let html = `<h3>× Multiplication — Grafting Children</h3>`;
+    html += `<p><span class="hl">${a} × ${b} = ${result}</span></p>`;
+    html += `<p>Multiply means: take all children from tree(${a}) and all children from tree(${b}), and place them under a single root. The factorization ${factorizationHTML(a)} combined with ${factorizationHTML(b)} gives ${factorizationHTML(result)}.</p>`;
+
+    if (shared.length > 0) {
+      html += `<p class="dim">Notice the shared prime${shared.length>1?'s':''} ${shared.join(', ')} — in the result tree, these contribute duplicate subtree branches. This is why multiplying numbers with common factors creates wider, bushier trees.</p>`;
+    } else {
+      html += `<p class="dim">Since ${a} and ${b} share no prime factors (they're coprime), every branch in the result is unique. The result tree is a clean merge.</p>`;
+    }
+    box.innerHTML = html;
+
+  } else if (op === 'gcd') {
+    const result = gcd(a, b);
+    const fR = factorMap(result);
+    let html = `<h3>gcd — Shared Structure (Intersection)</h3>`;
+    html += `<p><span class="hl">gcd(${a}, ${b}) = ${result}</span></p>`;
+
+    if (result === 1) {
+      html += `<p>${a} and ${b} are <span class="gr">coprime</span> — they share no prime factors. Their trees have no common branches, so the GCD tree is just the atom: a single node.</p>`;
+      html += `<p class="dim">In tree space, coprimality means structural disjointness. The two trees are built from completely different parts.</p>`;
+    } else {
+      html += `<p>GCD keeps only the prime factors shared by both numbers, taking the minimum multiplicity of each. `;
+      html += `From ${factorizationHTML(a)} and ${factorizationHTML(b)}, the shared structure is ${factorizationHTML(result)}.</p>`;
+      html += `<p class="dim">The GCD tree is literally the largest subtree pattern you can find in both input trees simultaneously. It's the structural overlap.</p>`;
+    }
+    box.innerHTML = html;
+
+  } else if (op === 'lcm') {
+    const result = lcm(a, b);
+    if (result > 100000) {
+      box.innerHTML = `<h3>lcm — Combined Structure (Union)</h3>
+        <p><span class="hl">lcm(${a}, ${b}) = ${result.toLocaleString()}</span> — too large to render, but it contains all branches from both trees with maximum multiplicities.</p>`;
+      return;
+    }
+    let html = `<h3>lcm — Combined Structure (Union)</h3>`;
+    html += `<p><span class="hl">lcm(${a}, ${b}) = ${result}</span></p>`;
+    html += `<p>LCM keeps all prime factors from both numbers, taking the maximum multiplicity of each. From ${factorizationHTML(a)} and ${factorizationHTML(b)}, the combined structure is ${factorizationHTML(result)}.</p>`;
+
+    const gcdVal = gcd(a, b);
+    html += `<p class="dim">The identity <em>a × b = gcd(a,b) × lcm(a,b)</em> has a tree interpretation: the total branches from grafting (multiplication) equals the shared branches (gcd) grafted with the combined branches (lcm). Check: ${a} × ${b} = ${a*b}, and ${gcdVal} × ${result} = ${gcdVal * result}.</p>`;
+    box.innerHTML = html;
+
+  } else if (op === 'add') {
+    const result = a + b;
+    if (result > 100000) {
+      box.innerHTML = `<h3>+ Addition — Structural Chaos</h3>
+        <p><span class="hl">${a} + ${b} = ${result.toLocaleString()}</span> — and its tree bears no resemblance to either input.</p>`;
+      return;
+    }
+    let html = `<h3>+ Addition — The Broken Operation</h3>`;
+    html += `<p><span class="hl">${a} + ${b} = ${result}</span></p>`;
+    html += `<p>${factorizationHTML(a)} + ${factorizationHTML(b)} = ${factorizationHTML(result)}. Look at the three trees — can you find any trace of tree(${a}) or tree(${b}) in tree(${result})?</p>`;
+    html += `<p>You can't. Addition destroys tree structure completely. The prime factorization of a sum has no systematic relationship to the factorizations of the addends. This is why number theory is hard: <em>the multiplicative world (clean, tree-shaped) and the additive world (wild, unpredictable) coexist in the same integers</em>.</p>`;
+    html += `<p class="dim">Goldbach's conjecture, the twin prime conjecture, the ABC conjecture — these all live at the boundary between additive and multiplicative structure. The trees make visible why that boundary is so difficult.</p>`;
+    box.innerHTML = html;
+  }
+}
+
+// --- Compare grid ---
+function buildCompareGrid(a, b) {
+  const grid = document.getElementById('compareGrid');
+  grid.innerHTML = '';
+
+  const ops = [
+    { name: 'a × b', value: a * b, op: 'mul' },
+    { name: 'gcd(a, b)', value: gcd(a, b), op: 'gcd' },
+    { name: 'lcm(a, b)', value: lcm(a, b), op: 'lcm' },
+    { name: 'a + b', value: a + b, op: 'add' },
+  ];
+
+  for (const o of ops) {
+    const card = document.createElement('div');
+    card.className = 'compare-card';
+    if (o.op === currentOp) card.style.borderColor = 'var(--accent)';
+
+    card.innerHTML = `
+      <div class="op-name">${o.name}</div>
+      <div class="op-result">${o.value > 100000 ? o.value.toLocaleString() : o.value}</div>
+      <div class="factor-text">${o.value <= 100000 ? factorizationHTML(o.value) : '(too large)'}</div>
+    `;
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    card.appendChild(svg);
+    if (o.value >= 1 && o.value <= 100000) {
+      renderMiniSVG(svg, o.value);
+    }
+
+    card.addEventListener('click', () => {
+      currentOp = o.op;
+      document.querySelectorAll('.op-btn').forEach(b => b.classList.toggle('active', b.dataset.op === currentOp));
+      updateAll();
+    });
+
+    grid.appendChild(card);
+  }
+}
+
+// --- Main update ---
+let currentOp = 'mul';
+
+function computeResult(a, b, op) {
+  switch (op) {
+    case 'mul': return a * b;
+    case 'gcd': return gcd(a, b);
+    case 'lcm': return lcm(a, b);
+    case 'add': return a + b;
+    default: return a * b;
+  }
+}
+
+const opSymbols = { mul: '×', gcd: 'gcd', lcm: 'lcm', add: '+' };
+
+function updateAll() {
+  const a = Math.max(1, Math.min(10000, parseInt(document.getElementById('inputA').value) || 1));
+  const b = Math.max(1, Math.min(10000, parseInt(document.getElementById('inputB').value) || 1));
+  const result = computeResult(a, b, currentOp);
+
+  // Update labels
+  document.getElementById('numA').textContent = a;
+  document.getElementById('numB').textContent = b;
+  document.getElementById('numR').textContent = result > 100000 ? result.toLocaleString() : result;
+  document.getElementById('factA').innerHTML = factorizationHTML(a);
+  document.getElementById('factB').innerHTML = factorizationHTML(b);
+  document.getElementById('factR').innerHTML = result <= 100000 ? factorizationHTML(result) : '(too large to factor quickly)';
+
+  const sym = opSymbols[currentOp];
+  document.getElementById('opSymbol').textContent = currentOp === 'gcd' || currentOp === 'lcm' ? sym : sym;
+
+  // Render trees
+  renderTreeSVG(document.getElementById('svgA'), a, { color: 'var(--accent)', rootColor: 'var(--highlight)' });
+  renderTreeSVG(document.getElementById('svgB'), b, { color: 'var(--cyan)', rootColor: 'var(--highlight)' });
+  if (result >= 1 && result <= 100000) {
+    renderTreeSVG(document.getElementById('svgR'), result, { color: 'var(--green)', rootColor: 'var(--highlight)' });
+  } else {
+    const svg = document.getElementById('svgR');
+    svg.innerHTML = '';
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.textContent = 'too large';
+    t.setAttribute('x', '50%'); t.setAttribute('y', '50%');
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', 'var(--text-dim)');
+    t.setAttribute('font-size', '14');
+    svg.setAttribute('viewBox', '0 0 280 200');
+    svg.appendChild(t);
+  }
+
+  // Insights and compare
+  generateInsight(a, b, currentOp);
+  buildCompareGrid(a, b);
+}
+
+// --- Event listeners ---
+document.getElementById('inputA').addEventListener('input', updateAll);
+document.getElementById('inputB').addEventListener('input', updateAll);
+
+document.querySelectorAll('.op-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentOp = btn.dataset.op;
+    document.querySelectorAll('.op-btn').forEach(b => b.classList.toggle('active', b.dataset.op === currentOp));
+    updateAll();
+  });
+});
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+  const iA = document.getElementById('inputA');
+  const iB = document.getElementById('inputB');
+  [iA.value, iB.value] = [iB.value, iA.value];
+  updateAll();
+});
+
+window.addEventListener('resize', updateAll);
+
+// Init
+updateAll();
+</script>
+
+</body>
+</html>

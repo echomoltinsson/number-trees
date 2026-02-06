@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prime Paths — Journeys Through Tree Space</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --node-fill: #1a1a2e;
+    --node-stroke: #7c6fef;
+    --edge-color: #3a3a5c;
+    --highlight: #e8a449;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    min-height: 100vh;
+    padding-bottom: 3rem;
+  }
+
+  header {
+    padding: 2rem 2rem 0.5rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin-top: 0.4rem;
+    line-height: 1.5;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  nav.links {
+    text-align: center;
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+  nav.links a {
+    color: var(--accent);
+    text-decoration: none;
+    margin: 0 0.8rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  nav.links a:hover { opacity: 1; }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem 2rem;
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .input-group label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .input-group input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.1rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    width: 100px;
+    text-align: center;
+  }
+  .input-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .arrow {
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.85; }
+
+  .path-display {
+    max-width: 1000px;
+    margin: 1.5rem auto;
+    padding: 0 2rem;
+  }
+
+  .path-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .path-stats {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 1.4rem;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .animation-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .animation-controls button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .animation-controls button:hover {
+    border-color: var(--accent);
+  }
+  .animation-controls button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .path-sequence {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .path-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.95rem;
+  }
+
+  .path-num {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .path-num:hover {
+    border-color: var(--accent);
+  }
+  .path-num.start {
+    background: var(--green);
+    color: #000;
+    border-color: var(--green);
+  }
+  .path-num.end {
+    background: var(--blue);
+    color: #000;
+    border-color: var(--blue);
+  }
+  .path-num.gcd {
+    background: var(--orange);
+    color: #000;
+    border-color: var(--orange);
+  }
+  .path-num.current {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+    transform: scale(1.1);
+  }
+
+  .path-op {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    padding: 0 0.2rem;
+  }
+  .path-op.divide { color: var(--red); }
+  .path-op.multiply { color: var(--green); }
+
+  .tree-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tree-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .tree-panel h3 {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tree-panel .num {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 0.3rem;
+  }
+
+  .tree-panel .factorization {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  .tree-panel svg {
+    width: 100%;
+    height: 180px;
+    display: block;
+  }
+
+  .tree-panel.start { border-color: var(--green); }
+  .tree-panel.current-tree { border-color: var(--accent); }
+  .tree-panel.end { border-color: var(--blue); }
+
+  .insight-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .insight-box h3 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 0.8rem;
+  }
+
+  .insight-box p {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+
+  .insight-box .formula {
+    font-family: 'Times New Roman', serif;
+    font-style: italic;
+    color: var(--highlight);
+    margin: 0.5rem 0;
+    font-size: 1rem;
+  }
+
+  /* Gallery */
+  .gallery {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+  }
+
+  .gallery h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .gallery-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .gallery-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .gallery-card .journey {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+  .gallery-card .journey span { color: var(--accent); }
+
+  .gallery-card .dist {
+    font-size: 0.75rem;
+    color: var(--green);
+    margin-bottom: 0.3rem;
+  }
+
+  .gallery-card .note {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .tree-display {
+      grid-template-columns: 1fr;
+    }
+    .path-stats {
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Prime <span>Paths</span></h1>
+  <p class="subtitle">
+    Every journey through tree space is a sequence of prime operations.<br>
+    From any number to any other, there's a shortest path through multiplication and division.
+  </p>
+</header>
+
+<nav class="links">
+  <a href="index.html">Explorer</a>
+  <a href="forest.html">Forest</a>
+  <a href="arithmetic.html">Arithmetic</a>
+  <a href="distance.html">Distance</a>
+  <a href="paths.html" style="opacity:1; text-decoration: underline;">Paths</a>
+  <a href="mertens.html">Möbius</a>
+</nav>
+
+<div class="controls">
+  <div class="input-group">
+    <label>From</label>
+    <input type="number" id="inputA" value="12" min="1" max="10000">
+  </div>
+  <span class="arrow">→</span>
+  <div class="input-group">
+    <label>To</label>
+    <input type="number" id="inputB" value="18" min="1" max="10000">
+  </div>
+  <button onclick="update()">Find Path</button>
+</div>
+
+<div class="path-display">
+  <div class="path-info">
+    <div class="path-stats">
+      <div class="stat">
+        <div class="stat-value" id="pathLength">—</div>
+        <div class="stat-label">Path Length</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="gcdValue">—</div>
+        <div class="stat-label">GCD (midpoint)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="lcmValue">—</div>
+        <div class="stat-label">LCM</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="stepsDown">—</div>
+        <div class="stat-label">÷ Steps</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="stepsUp">—</div>
+        <div class="stat-label">× Steps</div>
+      </div>
+    </div>
+    <div class="animation-controls">
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="stepBack()">◀</button>
+      <button onclick="stepForward()">▶</button>
+      <button onclick="resetAnim()">⟲ Reset</button>
+    </div>
+  </div>
+
+  <div class="path-sequence">
+    <div class="path-steps" id="pathSteps"></div>
+  </div>
+
+  <div class="tree-display">
+    <div class="tree-panel start">
+      <h3>Start</h3>
+      <div class="num" id="startNum">—</div>
+      <div class="factorization" id="startFact">—</div>
+      <svg id="startTree"></svg>
+    </div>
+    <div class="tree-panel current-tree">
+      <h3>Current</h3>
+      <div class="num" id="currentNum">—</div>
+      <div class="factorization" id="currentFact">—</div>
+      <svg id="currentTree"></svg>
+    </div>
+    <div class="tree-panel end">
+      <h3>End</h3>
+      <div class="num" id="endNum">—</div>
+      <div class="factorization" id="endFact">—</div>
+      <svg id="endTree"></svg>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <h3>The Geometry of Prime Paths</h3>
+    <p>
+      The shortest path from <em>a</em> to <em>b</em> always passes through their GCD.
+      First, we divide out factors unique to <em>a</em>. Then we multiply in factors unique to <em>b</em>.
+    </p>
+    <p class="formula">
+      path(a, b) = a → gcd(a,b) → b
+    </p>
+    <p>
+      The path length equals the tree distance: the total number of prime factor differences.
+      This reveals that GCD isn't just a number — it's the <em>intersection point</em> of two numbers in tree space.
+    </p>
+    <p id="pathInsight" style="color: var(--highlight); margin-top: 1rem;"></p>
+  </div>
+</div>
+
+<section class="gallery">
+  <h2>Notable Journeys</h2>
+  <div class="gallery-grid" id="galleryGrid"></div>
+</section>
+
+<script>
+// --- Prime utilities ---
+function primeFactors(n) {
+  const factors = {};
+  let d = 2;
+  while (d * d <= n) {
+    while (n % d === 0) {
+      factors[d] = (factors[d] || 0) + 1;
+      n /= d;
+    }
+    d++;
+  }
+  if (n > 1) factors[n] = (factors[n] || 0) + 1;
+  return factors;
+}
+
+function factorString(n) {
+  if (n === 1) return "1";
+  const f = primeFactors(n);
+  return Object.keys(f).sort((a,b) => a-b).map(p => {
+    const e = f[p];
+    return e === 1 ? p : `${p}<sup>${e}</sup>`;
+  }).join(' · ');
+}
+
+function gcd(a, b) {
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function lcm(a, b) {
+  return (a / gcd(a, b)) * b;
+}
+
+// --- Tree distance ---
+function treeDistance(a, b) {
+  const fa = primeFactors(a);
+  const fb = primeFactors(b);
+  const allPrimes = new Set([...Object.keys(fa), ...Object.keys(fb)]);
+  let dist = 0;
+  allPrimes.forEach(p => {
+    dist += Math.abs((fa[p] || 0) - (fb[p] || 0));
+  });
+  return dist;
+}
+
+// --- Find path from a to b through gcd ---
+function findPath(a, b) {
+  const g = gcd(a, b);
+  const path = [];
+  const ops = [];
+  
+  // Descend from a to gcd
+  let current = a;
+  path.push(current);
+  while (current > g) {
+    // Find a prime that divides current but not gcd (or higher power)
+    const fc = primeFactors(current);
+    const fg = primeFactors(g);
+    for (const p of Object.keys(fc).sort((x,y) => x-y)) {
+      const ec = fc[p];
+      const eg = fg[p] || 0;
+      if (ec > eg) {
+        current = current / p;
+        path.push(current);
+        ops.push({ type: 'divide', prime: p });
+        break;
+      }
+    }
+  }
+  
+  // Ascend from gcd to b
+  while (current < b || current !== b) {
+    if (current === b) break;
+    const fb = primeFactors(b);
+    const fc = primeFactors(current);
+    for (const p of Object.keys(fb).sort((x,y) => x-y)) {
+      const eb = fb[p];
+      const ec = fc[p] || 0;
+      if (ec < eb) {
+        current = current * parseInt(p);
+        path.push(current);
+        ops.push({ type: 'multiply', prime: parseInt(p) });
+        break;
+      }
+    }
+  }
+  
+  return { path, ops, gcd: g };
+}
+
+// --- Matula tree construction ---
+const primeCache = [0, 0, 2];
+function nthPrime(n) {
+  if (primeCache[n]) return primeCache[n];
+  let count = primeCache.length - 1;
+  let candidate = primeCache[count];
+  while (count < n) {
+    candidate++;
+    if (isPrime(candidate)) {
+      count++;
+      primeCache[count] = candidate;
+    }
+  }
+  return primeCache[n];
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  if (n === 2) return true;
+  if (n % 2 === 0) return false;
+  for (let i = 3; i * i <= n; i += 2) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+
+function primeIndex(p) {
+  if (p === 2) return 1;
+  let idx = 1, candidate = 2;
+  while (candidate < p) {
+    candidate++;
+    if (isPrime(candidate)) idx++;
+  }
+  return idx;
+}
+
+function matulaTree(n) {
+  if (n === 1) return { label: 1, children: [] };
+  const factors = primeFactors(n);
+  const children = [];
+  for (const [p, exp] of Object.entries(factors)) {
+    const childN = primeIndex(parseInt(p));
+    for (let i = 0; i < exp; i++) {
+      children.push(matulaTree(childN));
+    }
+  }
+  children.sort((a, b) => a.label - b.label);
+  return { label: n, children };
+}
+
+function treeSize(node) {
+  return 1 + node.children.reduce((s, c) => s + treeSize(c), 0);
+}
+
+function treeDepth(node) {
+  if (node.children.length === 0) return 0;
+  return 1 + Math.max(...node.children.map(treeDepth));
+}
+
+function layoutTree(root) {
+  const positions = [];
+  function countLeaves(node) {
+    if (node.children.length === 0) return 1;
+    return node.children.reduce((s, c) => s + countLeaves(c), 0);
+  }
+  function assign(node, x, y, width) {
+    node._x = x;
+    node._y = y;
+    node._width = width;
+    positions.push(node);
+    if (node.children.length === 0) return;
+    const leaves = node.children.map(countLeaves);
+    const total = leaves.reduce((a, b) => a + b, 0);
+    let cx = x - width / 2;
+    for (let i = 0; i < node.children.length; i++) {
+      const cw = (leaves[i] / total) * width;
+      assign(node.children[i], cx + cw / 2, y + 1, cw);
+      cx += cw;
+    }
+  }
+  root._width = countLeaves(root);
+  assign(root, 0, 0, root._width);
+  return positions;
+}
+
+function renderTree(svgEl, n, highlight = false) {
+  const W = svgEl.clientWidth || 200;
+  const H = svgEl.clientHeight || 180;
+  svgEl.innerHTML = '';
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if (n < 1 || n > 10000) {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.textContent = n < 1 ? '—' : 'too large';
+    t.setAttribute('x', W / 2);
+    t.setAttribute('y', H / 2);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', 'var(--text-dim)');
+    svgEl.appendChild(t);
+    return;
+  }
+
+  const tree = matulaTree(n);
+  const positions = layoutTree(tree);
+  const depth = treeDepth(tree);
+  const size = treeSize(tree);
+
+  const pad = 25;
+  const nodeR = Math.max(5, Math.min(14, 60 / Math.sqrt(size)));
+
+  let minX = Infinity, maxX = -Infinity;
+  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
+  const xRange = maxX - minX || 1;
+
+  function sx(x) { return pad + (x - minX) / xRange * (W - 2 * pad); }
+  function sy(y) { return pad + y / (depth || 1) * (H - 2 * pad); }
+
+  // Edges
+  positions.forEach(node => {
+    node.children.forEach(child => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', sx(node._x));
+      line.setAttribute('y1', sy(node._y));
+      line.setAttribute('x2', sx(child._x));
+      line.setAttribute('y2', sy(child._y));
+      line.setAttribute('stroke', highlight ? 'var(--accent)' : 'var(--edge-color)');
+      line.setAttribute('stroke-width', 1.5);
+      svgEl.appendChild(line);
+    });
+  });
+
+  // Nodes
+  positions.forEach(node => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', sx(node._x));
+    circle.setAttribute('cy', sy(node._y));
+    circle.setAttribute('r', nodeR);
+    circle.setAttribute('fill', highlight ? 'var(--accent)' : 'var(--node-fill)');
+    circle.setAttribute('stroke', highlight ? 'var(--highlight)' : 'var(--node-stroke)');
+    circle.setAttribute('stroke-width', 2);
+    svgEl.appendChild(circle);
+  });
+}
+
+// --- State ---
+let currentPath = [];
+let currentOps = [];
+let currentIndex = 0;
+let animInterval = null;
+
+function update() {
+  const a = parseInt(document.getElementById('inputA').value) || 1;
+  const b = parseInt(document.getElementById('inputB').value) || 1;
+  
+  const result = findPath(a, b);
+  currentPath = result.path;
+  currentOps = result.ops;
+  currentIndex = 0;
+  
+  const g = result.gcd;
+  const l = lcm(a, b);
+  const d = treeDistance(a, b);
+  
+  // Stats
+  document.getElementById('pathLength').textContent = d;
+  document.getElementById('gcdValue').textContent = g;
+  document.getElementById('lcmValue').textContent = l > 99999 ? '>' + Math.floor(l/1000) + 'k' : l;
+  
+  const stepsDown = currentOps.filter(o => o.type === 'divide').length;
+  const stepsUp = currentOps.filter(o => o.type === 'multiply').length;
+  document.getElementById('stepsDown').textContent = stepsDown;
+  document.getElementById('stepsUp').textContent = stepsUp;
+  
+  // Path steps
+  renderPathSteps(a, b, g);
+  
+  // Trees
+  document.getElementById('startNum').textContent = a;
+  document.getElementById('startFact').innerHTML = factorString(a);
+  renderTree(document.getElementById('startTree'), a);
+  
+  document.getElementById('endNum').textContent = b;
+  document.getElementById('endFact').innerHTML = factorString(b);
+  renderTree(document.getElementById('endTree'), b);
+  
+  updateCurrent();
+  
+  // Insight
+  let insight = '';
+  if (a === b) {
+    insight = 'Same number — the journey is staying still.';
+  } else if (g === 1) {
+    insight = `${a} and ${b} are coprime — they share no common factors. The path goes all the way down to 1 before climbing back up.`;
+  } else if (g === a) {
+    insight = `${a} divides ${b} — the path is pure multiplication, building up from divisor to multiple.`;
+  } else if (g === b) {
+    insight = `${b} divides ${a} — the path is pure division, stripping away extra factors.`;
+  } else {
+    insight = `The GCD ${g} = ${factorString(g).replace(/<sup>/g, '^').replace(/<\/sup>/g, '')} is their meeting point. To get from ${a} to ${b}, we first remove ${a/g} then add ${b/g}.`;
+  }
+  document.getElementById('pathInsight').innerHTML = insight;
+}
+
+function renderPathSteps(a, b, g) {
+  const container = document.getElementById('pathSteps');
+  container.innerHTML = '';
+  
+  currentPath.forEach((n, i) => {
+    const span = document.createElement('span');
+    span.className = 'path-num';
+    span.textContent = n;
+    span.dataset.index = i;
+    
+    if (i === 0) span.classList.add('start');
+    if (i === currentPath.length - 1) span.classList.add('end');
+    if (n === g && g !== a && g !== b) span.classList.add('gcd');
+    if (i === currentIndex) span.classList.add('current');
+    
+    span.onclick = () => {
+      currentIndex = i;
+      highlightStep();
+      updateCurrent();
+    };
+    container.appendChild(span);
+    
+    if (i < currentOps.length) {
+      const op = document.createElement('span');
+      op.className = 'path-op ' + currentOps[i].type;
+      op.textContent = currentOps[i].type === 'divide' ? `÷${currentOps[i].prime}` : `×${currentOps[i].prime}`;
+      container.appendChild(op);
+    }
+  });
+}
+
+function highlightStep() {
+  document.querySelectorAll('.path-num').forEach((el, i) => {
+    el.classList.toggle('current', i === currentIndex);
+  });
+}
+
+function updateCurrent() {
+  const n = currentPath[currentIndex] || 1;
+  document.getElementById('currentNum').textContent = n;
+  document.getElementById('currentFact').innerHTML = factorString(n);
+  renderTree(document.getElementById('currentTree'), n, true);
+  highlightStep();
+}
+
+function stepForward() {
+  if (currentIndex < currentPath.length - 1) {
+    currentIndex++;
+    updateCurrent();
+  }
+}
+
+function stepBack() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    updateCurrent();
+  }
+}
+
+function resetAnim() {
+  stopPlay();
+  currentIndex = 0;
+  updateCurrent();
+}
+
+function togglePlay() {
+  if (animInterval) {
+    stopPlay();
+  } else {
+    startPlay();
+  }
+}
+
+function startPlay() {
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  document.getElementById('playBtn').classList.add('active');
+  animInterval = setInterval(() => {
+    if (currentIndex < currentPath.length - 1) {
+      currentIndex++;
+      updateCurrent();
+    } else {
+      stopPlay();
+    }
+  }, 600);
+}
+
+function stopPlay() {
+  document.getElementById('playBtn').textContent = '▶ Play';
+  document.getElementById('playBtn').classList.remove('active');
+  if (animInterval) {
+    clearInterval(animInterval);
+    animInterval = null;
+  }
+}
+
+// --- Gallery ---
+const journeys = [
+  { a: 12, b: 18, note: "Through GCD 6" },
+  { a: 8, b: 9, note: "Adjacent but coprime" },
+  { a: 1, b: 60, note: "From nothing to highly composite" },
+  { a: 60, b: 90, note: "Highly composite neighbors" },
+  { a: 2, b: 3, note: "First two primes" },
+  { a: 6, b: 35, note: "Coprime — down to 1" },
+  { a: 24, b: 36, note: "Share 12" },
+  { a: 100, b: 1000, note: "Power of 10 jump" },
+  { a: 30, b: 42, note: "Both 6k form" },
+  { a: 16, b: 81, note: "2⁴ to 3⁴" },
+  { a: 72, b: 48, note: "Same prime pool" },
+  { a: 1, b: 2310, note: "To primorial 2·3·5·7·11" }
+];
+
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+  journeys.forEach(j => {
+    const d = treeDistance(j.a, j.b);
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.innerHTML = `
+      <div class="journey"><span>${j.a}</span> → <span>${j.b}</span></div>
+      <div class="dist">${d} steps</div>
+      <div class="note">${j.note}</div>
+    `;
+    card.onclick = () => {
+      document.getElementById('inputA').value = j.a;
+      document.getElementById('inputB').value = j.b;
+      update();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    grid.appendChild(card);
+  });
+}
+
+// --- Init ---
+document.getElementById('inputA').addEventListener('change', update);
+document.getElementById('inputB').addEventListener('change', update);
+document.getElementById('inputA').addEventListener('keyup', e => { if (e.key === 'Enter') update(); });
+document.getElementById('inputB').addEventListener('keyup', e => { if (e.key === 'Enter') update(); });
+
+renderGallery();
+update();
+</script>
+
+</body>
+</html>

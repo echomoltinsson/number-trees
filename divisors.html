@@ -881,7 +881,7 @@ function getMaximalChains(n) {
   
   function generate(current, remaining) {
     if (remaining.length === 0) {
-      chains.push([...current, n]);
+      chains.push([...current]);
       return;
     }
     

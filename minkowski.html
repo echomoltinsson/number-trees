@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minkowski ?-Function — The Devil's Staircase</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --highlight: #e8a449;
+    --left: #4ade80;
+    --right: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 2rem 1rem;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 2rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    gap: 1.5rem;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .panels { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .panel h2 {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  input[type="text"], input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus { border-color: var(--accent); }
+
+  label {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  button:hover { opacity: 0.85; }
+
+  .result {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .result-label {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    min-width: 120px;
+  }
+
+  .result-value {
+    color: var(--accent);
+    font-size: 1rem;
+  }
+
+  .cf-display {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .cf-coeff {
+    background: var(--surface);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .cf-coeff.periodic {
+    border: 1px solid var(--gold);
+    color: var(--gold);
+  }
+
+  .binary-display {
+    font-size: 0.9rem;
+    word-break: break-all;
+  }
+
+  .bit-0 { color: var(--left); }
+  .bit-1 { color: var(--right); }
+  .bit-period { 
+    border-bottom: 2px solid var(--gold);
+    padding-bottom: 1px;
+  }
+
+  #graph-container {
+    width: 100%;
+    height: 400px;
+    position: relative;
+  }
+
+  #graph-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hover-info {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+  }
+
+  .info-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .info-section h3 {
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+  }
+
+  .formula {
+    font-style: italic;
+    color: var(--highlight);
+  }
+
+  .example-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .example-btn {
+    background: var(--bg);
+    color: var(--text-dim);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+  }
+
+  .example-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Minkowski <span>?</span>-Function</h1>
+  <p class="subtitle">
+    The devil's staircase: continuous, strictly increasing, yet derivative zero almost everywhere.
+    Maps quadratic irrationals ↔ rationals by translating continued fractions into binary.
+  </p>
+</header>
+
+<nav class="nav-links">
+  <a href="index.html">← Number Trees</a>
+  <a href="calkin-wilf.html">Calkin-Wilf</a>
+  <a href="paths.html">Prime Paths</a>
+  <a href="arithmetic.html">Tree Arithmetic</a>
+</nav>
+
+<main>
+  <div class="panels">
+    <div class="panel">
+      <h2>Explore a Value</h2>
+      
+      <div class="input-row">
+        <label>x = </label>
+        <input type="text" id="input-x" value="0.618" style="width: 120px;">
+        <button onclick="compute()">Compute ?(x)</button>
+      </div>
+
+      <div class="example-buttons">
+        <button class="example-btn" onclick="setExample('1/3')">1/3</button>
+        <button class="example-btn" onclick="setExample('phi')">φ = (√5-1)/2</button>
+        <button class="example-btn" onclick="setExample('sqrt2-1')">√2 - 1</button>
+        <button class="example-btn" onclick="setExample('e-2')">e - 2</button>
+        <button class="example-btn" onclick="setExample('pi-3')">π - 3</button>
+        <button class="example-btn" onclick="setExample('2/7')">2/7</button>
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-row">
+          <span class="result-label">Input x:</span>
+          <span class="result-value" id="res-x">—</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">?(x):</span>
+          <span class="result-value" id="res-qx">—</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">CF [a₀; a₁, a₂, ...]:</span>
+          <span class="result-value cf-display" id="res-cf">—</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Binary encoding:</span>
+          <span class="result-value binary-display" id="res-binary">—</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Type:</span>
+          <span class="result-value" id="res-type">—</span>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>How It Works</h3>
+        <p>
+          The ?-function encodes continued fractions as binary strings via run-length encoding.
+          For x = [0; a₁, a₂, a₃, ...], write a₁ zeros, then a₂ ones, then a₃ zeros, alternating.
+          Read the result as a binary fraction: that's ?(x).
+        </p>
+        <p style="margin-top: 0.5rem;">
+          <span class="formula">?(x) = Σ (-1)^(k+1) · 2^(-(a₁+...+aₖ))</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>The Devil's Staircase</h2>
+      <div id="graph-container">
+        <canvas id="graph-canvas"></canvas>
+        <div class="hover-info" id="hover-info"></div>
+      </div>
+      <div class="info-section">
+        <h3>Why "Devil's Staircase"?</h3>
+        <p>
+          ?(x) is strictly increasing and continuous, yet its derivative equals 0 at almost every point.
+          The function gains all its height on a set of measure zero—a fractal dust of quadratic irrationals
+          and their limits.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Quadratic Irrationals ↔ Rationals</h2>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+      The ?-function's deepest property: it maps quadratic irrationals (solutions to ax² + bx + c = 0)
+      bijectively to rational numbers. This works because quadratic irrationals have <em>periodic</em>
+      continued fractions, which become periodic binary expansions—i.e., rationals.
+    </p>
+    
+    <div class="input-row">
+      <label>Quadratic: √</label>
+      <input type="number" id="sqrt-n" value="2" style="width: 60px;" min="2">
+      <span style="color: var(--text-dim);">- 1</span>
+      <button onclick="computeQuadratic()">Show Mapping</button>
+    </div>
+
+    <div class="result" id="quad-result">
+      <div class="result-row">
+        <span class="result-label">Quadratic:</span>
+        <span class="result-value" id="quad-value">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">CF (periodic):</span>
+        <span class="result-value cf-display" id="quad-cf">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">?(quadratic):</span>
+        <span class="result-value" id="quad-qx">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">Binary (periodic):</span>
+        <span class="result-value binary-display" id="quad-binary">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Self-Similarity & PSL(2,ℤ)</h2>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+      The ?-function exhibits fractal self-similarity generated by two operations:
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="info-section">
+        <h3>S: Shrink to bottom-left</h3>
+        <p>S(x, y) = (x/(1+x), y/2)</p>
+        <p style="margin-top: 0.5rem;">?(x/(1+x)) = ?(x)/2</p>
+      </div>
+      <div class="info-section">
+        <h3>R: Point reflection</h3>
+        <p>R(x, y) = (1-x, 1-y)</p>
+        <p style="margin-top: 0.5rem;">?(1-x) = 1 - ?(x)</p>
+      </div>
+    </div>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem;">
+      Combining S and R generates a monoid isomorphic to a subset of PSL(2,ℤ), the modular group.
+      Each element corresponds to a rational via continued fractions, and describes a self-similarity
+      of the devil's staircase.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <a href="https://github.com/echomoltinsson/number-trees">Source</a> ·
+  Minkowski (1904), Denjoy (1938)
+</footer>
+
+<script>
+// Continued fraction computation
+function toContinuedFraction(x, maxTerms = 30) {
+  const cf = [];
+  let val = x;
+  for (let i = 0; i < maxTerms; i++) {
+    const a = Math.floor(val);
+    cf.push(a);
+    val = val - a;
+    if (val < 1e-12) break;
+    val = 1 / val;
+    if (val > 1e12) break;
+  }
+  return cf;
+}
+
+function fromContinuedFraction(cf) {
+  if (cf.length === 0) return 0;
+  let val = cf[cf.length - 1];
+  for (let i = cf.length - 2; i >= 0; i--) {
+    val = cf[i] + 1 / val;
+  }
+  return val;
+}
+
+// Minkowski ?-function from continued fraction
+function minkowskiQ(cf) {
+  if (cf.length === 0) return 0;
+  
+  // For x in [0,1], cf[0] should be 0
+  let a0 = cf[0];
+  let coeffs = cf.slice(1);
+  
+  if (coeffs.length === 0) return a0;
+  
+  let sum = 0;
+  let expSum = 0;
+  
+  for (let k = 0; k < coeffs.length; k++) {
+    expSum += coeffs[k];
+    const sign = (k % 2 === 0) ? 1 : -1;
+    sum += sign * Math.pow(2, -expSum);
+  }
+  
+  return a0 + sum;
+}
+
+// Generate binary from continued fraction (run-length encoding)
+function cfToBinary(cf, maxBits = 40) {
+  if (cf.length <= 1) return '0';
+  
+  const coeffs = cf.slice(1); // Skip a0 for fractional part
+  let binary = '';
+  let bit = 0; // Start with 0s
+  
+  for (let i = 0; i < coeffs.length && binary.length < maxBits; i++) {
+    const count = coeffs[i];
+    for (let j = 0; j < count && binary.length < maxBits; j++) {
+      binary += bit;
+    }
+    bit = 1 - bit; // Alternate
+  }
+  
+  return binary || '0';
+}
+
+// Parse input (supports fractions, expressions)
+function parseInput(str) {
+  str = str.trim().toLowerCase();
+  
+  // Special values
+  if (str === 'phi' || str === 'φ') return (Math.sqrt(5) - 1) / 2;
+  if (str === 'sqrt2-1' || str === '√2-1') return Math.sqrt(2) - 1;
+  if (str === 'e-2') return Math.E - 2;
+  if (str === 'pi-3' || str === 'π-3') return Math.PI - 3;
+  
+  // Fractions
+  if (str.includes('/')) {
+    const [num, den] = str.split('/').map(s => parseFloat(s.trim()));
+    if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
+  }
+  
+  // Numbers
+  const val = parseFloat(str);
+  if (!isNaN(val)) return val;
+  
+  return null;
+}
+
+// Detect if likely rational (terminates quickly)
+function detectType(cf) {
+  if (cf.length <= 10) return 'Rational (finite CF)';
+  
+  // Check for periodic pattern (simple detection)
+  const tail = cf.slice(-6);
+  if (tail.length >= 2) {
+    // Check for period-1
+    if (tail.every(x => x === tail[0])) {
+      return `Quadratic irrational (period 1: [${tail[0]}])`;
+    }
+    // Check for period-2
+    if (tail.length >= 4) {
+      const p2 = [tail[tail.length-2], tail[tail.length-1]];
+      let isPeriod2 = true;
+      for (let i = tail.length - 4; i >= 0; i -= 2) {
+        if (tail[i] !== p2[0] || tail[i+1] !== p2[1]) {
+          isPeriod2 = false;
+          break;
+        }
+      }
+      if (isPeriod2) return `Quadratic irrational (period 2: [${p2.join(', ')}])`;
+    }
+  }
+  
+  return 'Transcendental or high-period';
+}
+
+function compute() {
+  const input = document.getElementById('input-x').value;
+  const x = parseInput(input);
+  
+  if (x === null || x < 0 || x > 1) {
+    alert('Please enter a value between 0 and 1');
+    return;
+  }
+  
+  const cf = toContinuedFraction(x);
+  const qx = minkowskiQ(cf);
+  const binary = cfToBinary(cf);
+  const type = detectType(cf);
+  
+  document.getElementById('res-x').textContent = x.toFixed(10).replace(/\.?0+$/, '');
+  document.getElementById('res-qx').textContent = qx.toFixed(10).replace(/\.?0+$/, '');
+  
+  // Display CF
+  const cfEl = document.getElementById('res-cf');
+  cfEl.innerHTML = cf.slice(0, 12).map((a, i) => 
+    `<span class="cf-coeff">${a}</span>`
+  ).join('') + (cf.length > 12 ? ' ...' : '');
+  
+  // Display binary with coloring
+  const binaryEl = document.getElementById('res-binary');
+  binaryEl.innerHTML = '0.' + binary.split('').map(b => 
+    `<span class="bit-${b}">${b}</span>`
+  ).join('');
+  
+  document.getElementById('res-type').textContent = type;
+  
+  // Highlight on graph
+  highlightPoint(x, qx);
+}
+
+function setExample(name) {
+  const examples = {
+    '1/3': '1/3',
+    'phi': 'phi',
+    'sqrt2-1': 'sqrt2-1',
+    'e-2': 'e-2',
+    'pi-3': 'pi-3',
+    '2/7': '2/7'
+  };
+  document.getElementById('input-x').value = examples[name] || name;
+  compute();
+}
+
+// Quadratic irrational exploration
+function computeQuadratic() {
+  const n = parseInt(document.getElementById('sqrt-n').value);
+  if (n < 2 || isNaN(n)) {
+    alert('Enter n ≥ 2');
+    return;
+  }
+  
+  const sqrtN = Math.sqrt(n);
+  const x = sqrtN - Math.floor(sqrtN);
+  const fullValue = sqrtN - 1;
+  
+  // Get CF (should show periodic pattern)
+  const cf = toContinuedFraction(x, 40);
+  const qx = minkowskiQ(cf);
+  const binary = cfToBinary(cf, 50);
+  
+  document.getElementById('quad-value').textContent = `√${n} - 1 ≈ ${fullValue.toFixed(8)}`;
+  
+  // Display CF with periodic marking
+  const cfEl = document.getElementById('quad-cf');
+  // Find period (simple: look for repeat in last 10)
+  let periodStart = -1;
+  let periodLen = 0;
+  outer: for (let len = 1; len <= 5; len++) {
+    for (let start = Math.max(1, cf.length - 2*len - 5); start < cf.length - 2*len; start++) {
+      let matches = true;
+      for (let i = 0; i < len && start + len + i < cf.length; i++) {
+        if (cf[start + i] !== cf[start + len + i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        periodStart = start;
+        periodLen = len;
+        break outer;
+      }
+    }
+  }
+  
+  cfEl.innerHTML = cf.slice(0, Math.min(15, cf.length)).map((a, i) => {
+    const isPeriodic = periodStart >= 0 && i >= periodStart;
+    return `<span class="cf-coeff${isPeriodic ? ' periodic' : ''}">${a}</span>`;
+  }).join('') + (cf.length > 15 ? ' ...' : '');
+  
+  document.getElementById('quad-qx').textContent = qx.toFixed(10);
+  
+  // Binary with period marking
+  const binaryEl = document.getElementById('quad-binary');
+  binaryEl.innerHTML = '0.' + binary.split('').map((b, i) => 
+    `<span class="bit-${b}">${b}</span>`
+  ).join('');
+}
+
+// Graph drawing
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('graph-container');
+const hoverInfo = document.getElementById('hover-info');
+
+let highlightedPoint = null;
+
+function resizeCanvas() {
+  const rect = container.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  drawGraph();
+}
+
+function drawGraph() {
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+  const pad = 40;
+  
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Grid
+  ctx.strokeStyle = '#1e1e2e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const x = pad + (w - 2*pad) * i / 4;
+    const y = pad + (h - 2*pad) * i / 4;
+    ctx.beginPath();
+    ctx.moveTo(x, pad);
+    ctx.lineTo(x, h - pad);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pad, y);
+    ctx.lineTo(w - pad, y);
+    ctx.stroke();
+  }
+  
+  // Axes labels
+  ctx.fillStyle = '#6e6e82';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const x = pad + (w - 2*pad) * i / 4;
+    ctx.fillText((i/4).toFixed(2), x, h - pad + 15);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = h - pad - (h - 2*pad) * i / 4;
+    ctx.fillText((i/4).toFixed(2), pad - 5, y + 4);
+  }
+  
+  // Draw the ?-function
+  ctx.strokeStyle = '#7c6fef';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  
+  const numPoints = 2000;
+  for (let i = 0; i <= numPoints; i++) {
+    const x = i / numPoints;
+    const cf = toContinuedFraction(x);
+    const y = minkowskiQ(cf);
+    
+    const px = pad + (w - 2*pad) * x;
+    const py = h - pad - (h - 2*pad) * y;
+    
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  
+  // y = x line for reference
+  ctx.strokeStyle = '#3a3a5c';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(pad, h - pad);
+  ctx.lineTo(w - pad, pad);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Highlighted point
+  if (highlightedPoint) {
+    const px = pad + (w - 2*pad) * highlightedPoint.x;
+    const py = h - pad - (h - 2*pad) * highlightedPoint.y;
+    
+    ctx.fillStyle = '#e8a449';
+    ctx.beginPath();
+    ctx.arc(px, py, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cross-hairs
+    ctx.strokeStyle = '#e8a44966';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, pad);
+    ctx.lineTo(px, h - pad);
+    ctx.moveTo(pad, py);
+    ctx.lineTo(w - pad, py);
+    ctx.stroke();
+  }
+}
+
+function highlightPoint(x, y) {
+  highlightedPoint = { x, y };
+  drawGraph();
+}
+
+// Mouse interaction
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+  const pad = 40;
+  
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  
+  if (mx < pad || mx > w - pad || my < pad || my > h - pad) {
+    hoverInfo.style.opacity = '0';
+    return;
+  }
+  
+  const x = (mx - pad) / (w - 2*pad);
+  const cf = toContinuedFraction(x);
+  const y = minkowskiQ(cf);
+  
+  hoverInfo.innerHTML = `x = ${x.toFixed(4)}<br>?(x) = ${y.toFixed(4)}`;
+  hoverInfo.style.left = (mx + 15) + 'px';
+  hoverInfo.style.top = (my - 30) + 'px';
+  hoverInfo.style.opacity = '1';
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoverInfo.style.opacity = '0';
+});
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+  const pad = 40;
+  
+  const mx = e.clientX - rect.left;
+  if (mx < pad || mx > w - pad) return;
+  
+  const x = (mx - pad) / (w - 2*pad);
+  document.getElementById('input-x').value = x.toFixed(6);
+  compute();
+});
+
+// Init
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Initial computation
+setTimeout(compute, 100);
+setTimeout(computeQuadratic, 200);
+</script>
+
+</body>
+</html>

@@ -3,20 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Number Trees — The Forest Hidden in the Integers</title>
+<title>Number Trees — Interactive Explorations in Number Theory</title>
+<meta name="description" content="Interactive visualizations exploring the hidden structures in integers and rationals: Matula's bijection, Ford circles, hyperbolic geometry, and more.">
 <style>
   :root {
     --bg: #0a0a0f;
     --surface: #12121a;
+    --surface-hover: #1a1a24;
     --border: #1e1e2e;
     --text: #c8c8d4;
     --text-dim: #6e6e82;
     --accent: #7c6fef;
-    --accent-glow: #7c6fef44;
-    --node-fill: #1a1a2e;
-    --node-stroke: #7c6fef;
-    --edge-color: #3a3a5c;
+    --accent-glow: #7c6fef33;
     --highlight: #e8a449;
+    --green: #4ade80;
+    --blue: #60a5fa;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,1009 +27,464 @@
     color: var(--text);
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 4rem 0 3rem;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-size: 2.5rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero .tagline {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.7;
+  }
+
+  .hero-quote {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 0.9rem;
+    margin-top: 1.5rem;
+  }
+
+  .hero-quote cite {
+    color: var(--accent);
+    font-style: normal;
+    display: block;
+    margin-top: 0.3rem;
+  }
+
+  /* Section headers */
+  .section {
+    padding: 2rem 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: 0.03em;
+  }
+
+  .section-header .line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .section-intro {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    max-width: 800px;
+    line-height: 1.7;
+  }
+
+  /* Cards grid */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
   }
 
-  header {
-    padding: 2rem 2rem 1rem;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 1.6rem;
-    font-weight: 400;
-    letter-spacing: 0.05em;
-    color: var(--text);
-  }
-
-  h1 span { color: var(--accent); }
-
-  .subtitle {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    margin-top: 0.5rem;
-    line-height: 1.6;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .input-area {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem 2rem;
-    flex-wrap: wrap;
-  }
-
-  .input-area input {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 1.4rem;
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    width: 200px;
-    text-align: center;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .input-area input:focus {
+  .card:hover {
+    background: var(--surface-hover);
     border-color: var(--accent);
-    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--accent-glow);
   }
 
-  .nav-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-family: inherit;
+  .card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .card h3 {
+    color: var(--text);
     font-size: 1rem;
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .nav-btn:hover {
-    border-color: var(--accent);
-    color: var(--text);
-  }
-
-  .random-btn {
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    color: #fff;
-    font-family: inherit;
-    font-size: 0.85rem;
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
     font-weight: 500;
+    margin-bottom: 0.5rem;
   }
 
-  .random-btn:hover {
-    opacity: 0.85;
-  }
-
-  .main-content {
-    display: flex;
-    gap: 0;
-    padding: 0 2rem 2rem;
-    min-height: 0;
-  }
-
-  .tree-panel {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    position: relative;
-    overflow: hidden;
-    min-height: 400px;
-    max-height: 600px;
-  }
-
-  .tree-panel svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .info-panel {
-    width: 320px;
-    padding: 0 0 0 1.5rem;
-    overflow-y: auto;
-    flex-shrink: 0;
-  }
-
-  .info-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.2rem;
-    margin-bottom: 1rem;
-  }
-
-  .info-section h3 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+  .card p {
     color: var(--text-dim);
-    margin-bottom: 0.8rem;
-  }
-
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 0.3rem 0;
-    font-size: 0.85rem;
-  }
-
-  .info-label { color: var(--text-dim); }
-  .info-value { color: var(--text); font-weight: 500; }
-  .info-value.accent { color: var(--accent); }
-  .info-value.highlight { color: var(--highlight); }
-
-  .factorization {
-    font-size: 1.1rem;
-    color: var(--accent);
-    word-break: break-all;
-    line-height: 1.6;
-  }
-
-  .factorization sup {
-    font-size: 0.7em;
-    color: var(--highlight);
-  }
-
-  .tree-description {
     font-size: 0.82rem;
-    color: var(--text-dim);
     line-height: 1.6;
-    margin-top: 0.5rem;
+    flex: 1;
   }
 
-  .matula-explain {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    line-height: 1.7;
-    padding: 1rem 1.2rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-
-  .matula-explain strong { color: var(--text); }
-
-  /* Tree node styles */
-  .tree-node circle {
-    fill: var(--node-fill);
-    stroke: var(--node-stroke);
-    stroke-width: 2;
-    transition: all 0.3s;
-    cursor: pointer;
-  }
-
-  .tree-node circle:hover {
-    fill: var(--accent);
-    filter: drop-shadow(0 0 8px var(--accent-glow));
-  }
-
-  .tree-node text {
-    fill: var(--text);
-    font-family: inherit;
-    font-size: 11px;
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
-  }
-
-  .tree-edge {
-    stroke: var(--edge-color);
-    stroke-width: 2;
-    fill: none;
-  }
-
-  .tree-node.root circle {
-    stroke: var(--highlight);
-    stroke-width: 2.5;
-  }
-
-  .tree-node.leaf circle {
-    fill: var(--accent);
-    opacity: 0.6;
-  }
-
-  .tooltip {
-    position: absolute;
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.78rem;
-    color: var(--text);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
-  }
-
-  .tooltip.visible { opacity: 1; }
-
-  /* Gallery */
-  .gallery {
-    padding: 1rem 2rem 2rem;
-  }
-
-  .gallery h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-    margin-bottom: 1rem;
-    padding-left: 0.2rem;
-  }
-
-  .gallery-row {
-    margin-bottom: 1.2rem;
-  }
-
-  .gallery-row h3 {
+  .card-tag {
+    display: inline-block;
+    margin-top: 1rem;
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     color: var(--accent);
-    margin-bottom: 0.6rem;
     opacity: 0.7;
   }
 
-  .gallery-row p {
-    font-size: 0.72rem;
+  /* Featured card */
+  .card.featured {
+    grid-column: span 2;
+    flex-direction: row;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .card.featured .card-content {
+    flex: 1;
+  }
+
+  .card.featured .card-icon {
+    font-size: 3rem;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 700px) {
+    .card.featured {
+      grid-column: span 1;
+      flex-direction: column;
+    }
+    .card.featured .card-icon {
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  /* Connections section */
+  .connections {
+    padding: 3rem 0;
+    text-align: center;
+  }
+
+  .connections h2 {
+    font-size: 1.1rem;
     color: var(--text-dim);
-    margin-bottom: 0.6rem;
-    line-height: 1.5;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
   }
 
-  .gallery-items {
+  .connection-diagram {
     display: flex;
-    gap: 0.6rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
   }
 
-  .gallery-card {
-    flex-shrink: 0;
-    width: 110px;
+  .connection-node {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    overflow: hidden;
-  }
-
-  .gallery-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px var(--accent-glow);
-  }
-
-  .gallery-card.active {
-    border-color: var(--highlight);
-  }
-
-  .gallery-card svg {
-    width: 110px;
-    height: 80px;
-    display: block;
-  }
-
-  .gallery-card-label {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.72rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
     color: var(--text);
+  }
+
+  .connection-arrow {
+    color: var(--accent);
+    font-size: 1.2rem;
+  }
+
+  /* Quick start */
+  .quick-start {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+
+  .quick-start h3 {
+    color: var(--accent);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+  }
+
+  .quick-start-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .quick-start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .quick-start-btn:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .quick-start-btn.primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .quick-start-btn.primary:hover {
+    opacity: 0.9;
+  }
+
+  /* Footer */
+  footer {
+    padding: 3rem 0;
     text-align: center;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-  }
-
-  .gallery-card-label .sub {
-    display: block;
-    font-size: 0.6rem;
     color: var(--text-dim);
-    margin-top: 1px;
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
   }
 
-  @media (max-width: 900px) {
-    .main-content { flex-direction: column; }
-    .info-panel { width: 100%; padding: 1rem 0 0; }
-    .tree-panel { min-height: 400px; }
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    text-decoration: underline;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .hero { padding: 2.5rem 0 2rem; }
+    .hero h1 { font-size: 1.8rem; }
+    .container { padding: 0 1rem; }
+    .cards { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>number <span>trees</span></h1>
-  <p class="subtitle">
-    Every natural number encodes a unique rooted tree. Enter a number to see the forest hidden inside.
-  </p>
-</header>
+<div class="container">
+  <header class="hero">
+    <h1>number <span>trees</span></h1>
+    <p class="tagline">
+      Interactive explorations of hidden structure in numbers. 
+      Integers encode trees. Trees enumerate rationals. Rationals tile hyperbolic space.
+      Same patterns, different lenses.
+    </p>
+    
+    <div class="quick-start">
+      <h3>Start Exploring</h3>
+      <div class="quick-start-options">
+        <a href="matula.html" class="quick-start-btn primary">🌳 Explore Number Trees</a>
+        <a href="hyperbolic.html" class="quick-start-btn">◉ Enter the Hyperbolic Plane</a>
+        <a href="ford-circles.html" class="quick-start-btn">○ See Ford Circles</a>
+      </div>
+    </div>
+  </header>
 
-<div class="input-area">
-  <button class="nav-btn" onclick="navigate(-1)">←</button>
-  <input type="number" id="numberInput" value="42" min="1" max="100000">
-  <button class="nav-btn" onclick="navigate(1)">→</button>
-  <button class="random-btn" onclick="randomNumber()">random</button>
-  <a href="forest.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">forest view →</a>
-  <a href="mertens.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">möbius landscape →</a>
-  <a href="arithmetic.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">tree arithmetic →</a>
-  <a href="distance.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">tree distance →</a>
-  <a href="paths.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">prime paths →</a>
-  <a href="divisors.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">divisor lattice →</a>
-  <a href="calkin-wilf.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">calkin-wilf →</a>
-  <a href="minkowski.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">minkowski ? →</a>
-  <a href="ford-circles.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">ford circles →</a>
-  <a href="hyperbolic.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.8rem; margin-left: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">hyperbolic →</a>
+  <section class="section">
+    <div class="section-header">
+      <h2>Trees Hidden in Integers</h2>
+      <div class="line"></div>
+    </div>
+    <p class="section-intro">
+      Every natural number encodes a unique rooted tree. This is Matula's bijection: 
+      1 maps to a single node, primes extend depth, composites add children. 
+      These visualizations explore what this structure reveals about number theory.
+    </p>
+    
+    <div class="cards">
+      <a href="matula.html" class="card featured">
+        <div class="card-icon">🌳</div>
+        <div class="card-content">
+          <h3>Number Trees Explorer</h3>
+          <p>
+            The core visualization. Enter any number to see its tree structure. 
+            Explore the gallery of primes, powers of 2, primorials, and highly composite numbers. 
+            See how factorization becomes geometry.
+          </p>
+          <span class="card-tag">Start here</span>
+        </div>
+      </a>
+      
+      <a href="forest.html" class="card">
+        <div class="card-icon">🌲</div>
+        <h3>Forest View</h3>
+        <p>See many trees at once. Watch patterns emerge as you scan through ranges of numbers.</p>
+        <span class="card-tag">Overview</span>
+      </a>
+      
+      <a href="arithmetic.html" class="card">
+        <div class="card-icon">➕</div>
+        <h3>Tree Arithmetic</h3>
+        <p>What happens when you add or multiply numbers? Watch their trees combine.</p>
+        <span class="card-tag">Operations</span>
+      </a>
+      
+      <a href="distance.html" class="card">
+        <div class="card-icon">📏</div>
+        <h3>Tree Distance</h3>
+        <p>Define distance between numbers via their tree structure. Multiplicative geometry of integers.</p>
+        <span class="card-tag">Metric</span>
+      </a>
+      
+      <a href="paths.html" class="card">
+        <div class="card-icon">🛤️</div>
+        <h3>Prime Paths</h3>
+        <p>Trace paths through the tree. Every prime creates a unique trail.</p>
+        <span class="card-tag">Traversal</span>
+      </a>
+      
+      <a href="divisors.html" class="card">
+        <div class="card-icon">🔢</div>
+        <h3>Divisor Lattice</h3>
+        <p>Divisibility creates partial order. See how tree structure reflects divisor relationships.</p>
+        <span class="card-tag">Structure</span>
+      </a>
+      
+      <a href="mertens.html" class="card">
+        <div class="card-icon">〰️</div>
+        <h3>Möbius Landscape</h3>
+        <p>The Möbius function μ(n) oscillates wildly. Watch the Mertens function accumulate cancellations.</p>
+        <span class="card-tag">Analytic</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>The Geometry of Rationals</h2>
+      <div class="line"></div>
+    </div>
+    <p class="section-intro">
+      Binary trees enumerate all positive rationals. The same tree appears as Stern-Brocot mediants, 
+      Calkin-Wilf iteration, and continued fraction paths. Ford circles visualize this structure 
+      as tangent circles. At the deepest level, it's all hyperbolic geometry: Ford circles are 
+      horocycles, the modular group acts by isometries, and the pattern tiles the Poincaré half-plane.
+    </p>
+    
+    <div class="cards">
+      <a href="calkin-wilf.html" class="card">
+        <div class="card-icon">🌿</div>
+        <h3>Calkin-Wilf Tree</h3>
+        <p>
+          Every positive rational appears exactly once. Binary paths encode continued fractions. 
+          The same tree as Stern-Brocot, different labeling.
+        </p>
+        <span class="card-tag">Enumeration</span>
+      </a>
+      
+      <a href="minkowski.html" class="card">
+        <div class="card-icon">❓</div>
+        <h3>Minkowski Question-Mark</h3>
+        <p>
+          A continuous, strictly increasing function that maps rationals to dyadics. 
+          Turns arithmetic structure into fractal geometry.
+        </p>
+        <span class="card-tag">Function</span>
+      </a>
+      
+      <a href="ford-circles.html" class="card">
+        <div class="card-icon">◎</div>
+        <h3>Ford Circles</h3>
+        <p>
+          Every rational p/q gets a circle of radius 1/(2q²). Two circles are tangent iff 
+          the rationals are Farey neighbors. Geometry from arithmetic.
+        </p>
+        <span class="card-tag">Visualization</span>
+      </a>
+      
+      <a href="hyperbolic.html" class="card featured">
+        <div class="card-icon">◉</div>
+        <div class="card-content">
+          <h3>Hyperbolic Geometry</h3>
+          <p>
+            The unifying perspective. Ford circles are horocycles in the Poincaré half-plane. 
+            The modular group PSL(2,ℤ) tiles hyperbolic space with copies of a fundamental domain.
+            Number theory and non-Euclidean geometry are the same subject.
+          </p>
+          <span class="card-tag">Deep connection</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="connections">
+    <h2>The Unifying Thread</h2>
+    <div class="connection-diagram">
+      <span class="connection-node">Stern-Brocot</span>
+      <span class="connection-arrow">↔</span>
+      <span class="connection-node">Calkin-Wilf</span>
+      <span class="connection-arrow">↔</span>
+      <span class="connection-node">Continued Fractions</span>
+      <span class="connection-arrow">↔</span>
+      <span class="connection-node">Ford Circles</span>
+      <span class="connection-arrow">↔</span>
+      <span class="connection-node">Hyperbolic Plane</span>
+    </div>
+    <p class="section-intro" style="text-align: center; margin-top: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+      These aren't separate topics. They're different views of the same mathematical object: 
+      the structure of rational numbers under mediant operations, encoded by the modular group.
+    </p>
+  </section>
 </div>
 
-<div class="main-content">
-  <div class="tree-panel" id="treePanel">
-    <svg id="treeSvg"></svg>
-    <div class="tooltip" id="tooltip"></div>
+<footer>
+  <div class="footer-links">
+    <a href="https://onyxclaw.substack.com">Essays</a>
+    <a href="https://github.com/echomoltinsson">GitHub</a>
   </div>
-
-  <div class="info-panel">
-    <div class="info-section">
-      <h3>Number</h3>
-      <div class="info-row">
-        <span class="info-label">Value</span>
-        <span class="info-value accent" id="infoValue">42</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Matula number</span>
-        <span class="info-value" id="infoMatula">42</span>
-      </div>
-    </div>
-
-    <div class="info-section">
-      <h3>Factorization</h3>
-      <div class="factorization" id="infoFactor"></div>
-    </div>
-
-    <div class="info-section">
-      <h3>Tree Properties</h3>
-      <div class="info-row">
-        <span class="info-label">Nodes</span>
-        <span class="info-value" id="infoNodes">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Depth</span>
-        <span class="info-value" id="infoDepth">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Leaves</span>
-        <span class="info-value" id="infoLeaves">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Branching factor</span>
-        <span class="info-value" id="infoBranch">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Is prime</span>
-        <span class="info-value" id="infoIsPrime">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Tree type</span>
-        <span class="info-value highlight" id="infoTreeType">—</span>
-      </div>
-    </div>
-
-    <div class="info-section">
-      <h3>Arithmetic Functions</h3>
-      <div class="info-row">
-        <span class="info-label">μ(n) Möbius</span>
-        <span class="info-value" id="infoMobius">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">λ(n) Liouville</span>
-        <span class="info-value" id="infoLiouville">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Ω(n) prime factors</span>
-        <span class="info-value" id="infoOmegaBig">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">ω(n) distinct primes</span>
-        <span class="info-value" id="infoOmegaSmall">—</span>
-      </div>
-      <p class="tree-description" id="infoArithDesc" style="margin-top:0.4rem;font-size:0.72rem;color:var(--text-dim)"></p>
-    </div>
-
-    <div class="info-section">
-      <h3>Reading the Tree</h3>
-      <p class="tree-description" id="infoDescription"></p>
-    </div>
-
-    <div class="matula-explain">
-      <strong>How it works:</strong> In Matula's bijection, 1 maps to a single node.
-      A prime p<sub>k</sub> (the k-th prime) maps to a root connected to the tree for k.
-      A composite n = a × b × c… maps to a root whose children are the trees for a, b, c…
-      Every natural number produces a unique tree. Every rooted tree has a unique number.
-    </div>
-  </div>
-</div>
-
-<div class="gallery">
-  <h2>The Forest — Number Families</h2>
-  <div id="galleryContainer"></div>
-</div>
-
-<script>
-// --- Prime utilities ---
-const primeCache = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-const primeSet = new Set(primeCache);
-
-function isPrime(n) {
-  if (n < 2) return false;
-  if (primeSet.has(n)) return true;
-  if (n <= primeCache[primeCache.length - 1]) return false;
-  if (n % 2 === 0 || n % 3 === 0) return false;
-  for (let i = 5; i * i <= n; i += 6) {
-    if (n % i === 0 || n % (i + 2) === 0) return false;
-  }
-  return true;
-}
-
-function ensurePrimes(upTo) {
-  let candidate = primeCache[primeCache.length - 1] + 2;
-  while (primeCache.length < upTo + 1) {
-    if (isPrime(candidate)) {
-      primeCache.push(candidate);
-      primeSet.add(candidate);
-    }
-    candidate += 2;
-  }
-}
-
-function nthPrime(n) {
-  // 1-indexed: nthPrime(1) = 2
-  ensurePrimes(n);
-  return primeCache[n - 1];
-}
-
-function primeIndex(p) {
-  // Returns k such that p is the k-th prime (1-indexed)
-  if (!isPrime(p)) return -1;
-  ensurePrimes(200);
-  let idx = primeCache.indexOf(p);
-  if (idx >= 0) return idx + 1;
-  // extend
-  let candidate = primeCache[primeCache.length - 1] + 2;
-  while (true) {
-    if (isPrime(candidate)) {
-      primeCache.push(candidate);
-      primeSet.add(candidate);
-      if (candidate === p) return primeCache.length;
-    }
-    candidate += 2;
-  }
-}
-
-function factorize(n) {
-  const factors = [];
-  if (n <= 1) return factors;
-  for (let d = 2; d * d <= n; d++) {
-    while (n % d === 0) {
-      factors.push(d);
-      n /= d;
-    }
-  }
-  if (n > 1) factors.push(n);
-  return factors;
-}
-
-function factorizationHTML(n) {
-  if (n === 1) return '1';
-  const factors = factorize(n);
-  const counts = {};
-  factors.forEach(f => counts[f] = (counts[f] || 0) + 1);
-  return Object.entries(counts)
-    .map(([base, exp]) => exp > 1 ? `${base}<sup>${exp}</sup>` : `${base}`)
-    .join(' × ');
-}
-
-// --- Matula tree construction ---
-// Returns a tree object: { value: n, children: [...] }
-function matulaTree(n) {
-  if (n === 1) {
-    return { value: 1, children: [], label: '1' };
-  }
-
-  if (isPrime(n)) {
-    const k = primeIndex(n);
-    const child = matulaTree(k);
-    return { value: n, children: [child], label: String(n) };
-  }
-
-  // Composite: factorize and create children for each prime factor
-  const factors = factorize(n);
-  const children = factors.map(f => matulaTree(f));
-  return { value: n, children, label: String(n) };
-}
-
-// --- Tree metrics ---
-function treeDepth(node) {
-  if (node.children.length === 0) return 0;
-  return 1 + Math.max(...node.children.map(treeDepth));
-}
-
-function treeSize(node) {
-  return 1 + node.children.reduce((s, c) => s + treeSize(c), 0);
-}
-
-function treeLeaves(node) {
-  if (node.children.length === 0) return 1;
-  return node.children.reduce((s, c) => s + treeLeaves(c), 0);
-}
-
-function maxBranching(node) {
-  const b = node.children.length;
-  if (b === 0) return 0;
-  return Math.max(b, ...node.children.map(maxBranching));
-}
-
-function treeType(n, tree) {
-  if (n === 1) return 'atom';
-  if (isPrime(n)) {
-    const d = treeDepth(tree);
-    if (d <= 2) return 'chain';
-    return 'spine';
-  }
-  const b = maxBranching(tree);
-  if (b >= 4) return 'bush';
-  if (treeDepth(tree) <= 2) return 'star';
-  return 'branching';
-}
-
-// --- Tree layout (simple Reingold-Tilford-ish) ---
-function layoutTree(root) {
-  // Assign x,y positions. y = depth, x = horizontal spread
-  const positions = [];
-
-  function computeWidth(node) {
-    if (node.children.length === 0) {
-      node._width = 1;
-      return 1;
-    }
-    const w = node.children.reduce((s, c) => s + computeWidth(c), 0);
-    node._width = Math.max(w, 1);
-    return node._width;
-  }
-
-  computeWidth(root);
-
-  function assign(node, x, y, width) {
-    node._x = x;
-    node._y = y;
-    positions.push(node);
-
-    if (node.children.length === 0) return;
-
-    let cx = x - width / 2;
-    for (const child of node.children) {
-      const childWidth = (child._width / node._width) * width;
-      assign(child, cx + childWidth / 2, y + 1, childWidth);
-      cx += childWidth;
-    }
-  }
-
-  const totalWidth = root._width;
-  assign(root, 0, 0, totalWidth);
-
-  return positions;
-}
-
-// --- SVG Rendering ---
-function renderTree(tree, n) {
-  const svg = document.getElementById('treeSvg');
-  const panel = document.getElementById('treePanel');
-  const rect = panel.getBoundingClientRect();
-  const W = rect.width;
-  const H = rect.height;
-
-  svg.innerHTML = '';
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-
-  const positions = layoutTree(tree);
-  const depth = treeDepth(tree);
-  const size = treeSize(tree);
-
-  // Calculate scaling
-  const padding = 60;
-  const nodeRadius = Math.max(8, Math.min(22, 200 / Math.sqrt(size)));
-
-  // Find x range
-  let minX = Infinity, maxX = -Infinity;
-  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
-
-  const xRange = maxX - minX || 1;
-  const yRange = depth || 1;
-
-  const scaleX = (W - padding * 2) / xRange;
-  const scaleY = (H - padding * 2) / yRange;
-
-  function tx(node) { return padding + (node._x - minX) * scaleX; }
-  function ty(node) { return padding + node._y * scaleY; }
-
-  // Draw edges first
-  function drawEdges(node) {
-    for (const child of node.children) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const x1 = tx(node), y1 = ty(node);
-      const x2 = tx(child), y2 = ty(child);
-      const midY = (y1 + y2) / 2;
-      line.setAttribute('d', `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`);
-      line.setAttribute('class', 'tree-edge');
-      svg.appendChild(line);
-      drawEdges(child);
-    }
-  }
-  drawEdges(tree);
-
-  // Draw nodes
-  const tooltip = document.getElementById('tooltip');
-
-  function drawNodes(node, isRoot) {
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttribute('class', `tree-node${isRoot ? ' root' : ''}${node.children.length === 0 ? ' leaf' : ''}`);
-    g.setAttribute('transform', `translate(${tx(node)},${ty(node)})`);
-
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('r', nodeRadius);
-    g.appendChild(circle);
-
-    // Label (show value for smaller trees)
-    if (size <= 50) {
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.textContent = node.value;
-      text.style.fontSize = `${Math.max(8, nodeRadius * 0.8)}px`;
-      g.appendChild(text);
-    }
-
-    // Tooltip
-    g.addEventListener('mouseenter', (e) => {
-      let desc = `Matula number: ${node.value}`;
-      if (node.value === 1) desc += '\n(leaf — the atom)';
-      else if (isPrime(node.value)) desc += `\np${primeIndex(node.value)} → child is tree(${primeIndex(node.value)})`;
-      else desc += `\n= ${factorize(node.value).join(' × ')}`;
-      tooltip.textContent = desc;
-      tooltip.classList.add('visible');
-      const rect = panel.getBoundingClientRect();
-      tooltip.style.left = (tx(node) + nodeRadius + 10) + 'px';
-      tooltip.style.top = (ty(node) - 10) + 'px';
-    });
-
-    g.addEventListener('mouseleave', () => {
-      tooltip.classList.remove('visible');
-    });
-
-    // Click to navigate to that number
-    g.addEventListener('click', () => {
-      document.getElementById('numberInput').value = node.value;
-      update(node.value);
-    });
-
-    svg.appendChild(g);
-
-    for (const child of node.children) {
-      drawNodes(child, false);
-    }
-  }
-  drawNodes(tree, true);
-}
-
-// --- Info panel ---
-// --- Arithmetic functions ---
-function arithmeticFunctions(n) {
-  if (n <= 0) return { mu: 0, lambda: 1, bigOmega: 0, smallOmega: 0 };
-  if (n === 1) return { mu: 1, lambda: 1, bigOmega: 0, smallOmega: 0 };
-  const factors = factorize(n);
-  const bigOmega = factors.length; // total prime factors with multiplicity
-  const distinctPrimes = new Set(factors);
-  const smallOmega = distinctPrimes.size; // distinct prime factors
-  // μ(n): 0 if squared factor, else (-1)^ω(n)
-  const isSquareFree = bigOmega === smallOmega;
-  const mu = isSquareFree ? (smallOmega % 2 === 0 ? 1 : -1) : 0;
-  // λ(n) = (-1)^Ω(n)
-  const lambda = bigOmega % 2 === 0 ? 1 : -1;
-  return { mu, lambda, bigOmega, smallOmega };
-}
-
-function updateInfo(n, tree) {
-  document.getElementById('infoValue').textContent = n.toLocaleString();
-  document.getElementById('infoMatula').textContent = n;
-  document.getElementById('infoFactor').innerHTML = factorizationHTML(n);
-  document.getElementById('infoNodes').textContent = treeSize(tree);
-  document.getElementById('infoDepth').textContent = treeDepth(tree);
-  document.getElementById('infoLeaves').textContent = treeLeaves(tree);
-  document.getElementById('infoBranch').textContent = maxBranching(tree);
-  document.getElementById('infoIsPrime').textContent = isPrime(n) ? 'yes' : 'no';
-
-  const type = treeType(n, tree);
-  document.getElementById('infoTreeType').textContent = type;
-
-  // Arithmetic functions
-  const af = arithmeticFunctions(n);
-  const muEl = document.getElementById('infoMobius');
-  muEl.textContent = af.mu === 0 ? '0 (not square-free)' : af.mu > 0 ? '+1' : '−1';
-  muEl.style.color = af.mu === 0 ? 'var(--text-dim)' : af.mu > 0 ? '#4ade80' : '#f87171';
-  const lamEl = document.getElementById('infoLiouville');
-  lamEl.textContent = af.lambda > 0 ? '+1' : '−1';
-  lamEl.style.color = af.lambda > 0 ? '#4ade80' : '#f87171';
-  document.getElementById('infoOmegaBig').textContent = af.bigOmega;
-  document.getElementById('infoOmegaSmall').textContent = af.smallOmega;
-
-  // Tree interpretation of arithmetic functions
-  let arithDesc = '';
-  if (n === 1) {
-    arithDesc = 'The empty tree: all functions at their base values.';
-  } else if (af.mu === 0) {
-    arithDesc = 'μ = 0: this number has a repeated prime factor, meaning the root has duplicate subtrees. Manchon (2026) shows this vanishing connects to cancellation in the Mertens function.';
-  } else {
-    arithDesc = `Square-free: all ${af.smallOmega} prime factor${af.smallOmega > 1 ? 's are' : ' is'} distinct, so root subtrees are all unique. μ oscillates as (−1)^ω. λ = (−1)^Ω tracks parity of total prime weight.`;
-  }
-  document.getElementById('infoArithDesc').textContent = arithDesc;
-
-  // Description
-  let desc = '';
-  if (n === 1) {
-    desc = 'The simplest tree — a single node. The atom from which all others are built.';
-  } else if (isPrime(n)) {
-    const k = primeIndex(n);
-    desc = `${n} is the ${ordinal(k)} prime, so its tree is a root connected to the tree for ${k}. Primes always produce single-child nodes — they extend depth, never width.`;
-  } else {
-    const factors = factorize(n);
-    const unique = [...new Set(factors)];
-    desc = `${n} = ${factors.join(' × ')}. Each prime factor becomes a child branch. `;
-    if (factors.length === 2) {
-      desc += 'Two factors, two branches — a binary split.';
-    } else if (factors.length >= 4) {
-      desc += `${factors.length} factors create a wide, bushy node.`;
-    } else {
-      desc += `${factors.length} branches at the root.`;
-    }
-  }
-  document.getElementById('infoDescription').textContent = desc;
-}
-
-function ordinal(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-
-// --- Main update ---
-function update(n) {
-  n = Math.max(1, Math.min(100000, Math.floor(n)));
-  document.getElementById('numberInput').value = n;
-
-  const tree = matulaTree(n);
-  renderTree(tree, n);
-  updateInfo(n, tree);
-}
-
-function navigate(dir) {
-  const input = document.getElementById('numberInput');
-  const n = parseInt(input.value) || 1;
-  update(n + dir);
-}
-
-function randomNumber() {
-  // Weighted toward interesting numbers
-  const interesting = [
-    2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 15, 16, 20, 24, 28, 30, 42, 60,
-    64, 100, 120, 128, 210, 256, 360, 512, 720, 1024, 2310, 5040,
-    // Highly composite numbers
-    2, 4, 6, 12, 24, 36, 48, 60, 120, 180, 240, 360, 720, 1260, 2520, 5040,
-    // Powers of 2
-    2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096,
-    // Primorials
-    2, 6, 30, 210, 2310,
-    // Primes
-    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
-    // Random
-    Math.floor(Math.random() * 1000) + 2,
-    Math.floor(Math.random() * 5000) + 2,
-    Math.floor(Math.random() * 200) + 2,
-  ];
-  const n = interesting[Math.floor(Math.random() * interesting.length)];
-  update(n);
-}
-
-// --- Init ---
-const input = document.getElementById('numberInput');
-input.addEventListener('input', () => {
-  const n = parseInt(input.value);
-  if (n && n >= 1) update(n);
-});
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp') { e.preventDefault(); navigate(1); }
-  if (e.key === 'ArrowDown') { e.preventDefault(); navigate(-1); }
-});
-
-window.addEventListener('resize', () => {
-  const n = parseInt(input.value) || 42;
-  update(n);
-});
-
-update(42);
-
-// --- Gallery ---
-const families = [
-  {
-    name: 'Primes — The Chains',
-    desc: 'Primes always add depth, never width. Each prime p_k creates a single child pointing to tree(k).',
-    numbers: [
-      { n: 2, label: '2', sub: 'p₁' },
-      { n: 3, label: '3', sub: 'p₂' },
-      { n: 5, label: '5', sub: 'p₃' },
-      { n: 11, label: '11', sub: 'p₅' },
-      { n: 31, label: '31', sub: 'p₁₁' },
-      { n: 127, label: '127', sub: 'p₃₁' },
-    ]
-  },
-  {
-    name: 'Powers of 2 — The Bushes',
-    desc: '2^n = root with n identical children. Pure width. The opposite of primes.',
-    numbers: [
-      { n: 4, label: '4', sub: '2²' },
-      { n: 8, label: '8', sub: '2³' },
-      { n: 16, label: '16', sub: '2⁴' },
-      { n: 32, label: '32', sub: '2⁵' },
-      { n: 64, label: '64', sub: '2⁶' },
-      { n: 256, label: '256', sub: '2⁸' },
-    ]
-  },
-  {
-    name: 'Primorials — Width × Depth',
-    desc: 'Products of consecutive primes. Each distinct factor adds a unique branch shape.',
-    numbers: [
-      { n: 6, label: '6', sub: '2×3' },
-      { n: 30, label: '30', sub: '2×3×5' },
-      { n: 210, label: '210', sub: '2×3×5×7' },
-      { n: 2310, label: '2310', sub: '2×3×5×7×11' },
-    ]
-  },
-  {
-    name: 'Highly Composite — Maximum Branching',
-    desc: 'Numbers with more divisors than any smaller number. Rich, complex trees.',
-    numbers: [
-      { n: 12, label: '12', sub: '2²×3' },
-      { n: 60, label: '60', sub: '2²×3×5' },
-      { n: 120, label: '120', sub: '2³×3×5' },
-      { n: 360, label: '360', sub: '2³×3²×5' },
-      { n: 720, label: '720', sub: '2⁴×3²×5' },
-      { n: 5040, label: '5040', sub: '2⁴×3²×5×7' },
-    ]
-  },
-  {
-    name: 'Special Numbers',
-    desc: 'Numbers with cultural, mathematical, or personal significance.',
-    numbers: [
-      { n: 1, label: '1', sub: 'the atom' },
-      { n: 42, label: '42', sub: 'the answer' },
-      { n: 1729, label: '1729', sub: 'Ramanujan' },
-      { n: 8128, label: '8128', sub: 'perfect' },
-      { n: 1024, label: '1024', sub: '2¹⁰' },
-    ]
-  }
-];
-
-function renderMiniTree(svgEl, n) {
-  const tree = matulaTree(n);
-  const positions = layoutTree(tree);
-  const depth = treeDepth(tree);
-  const size = treeSize(tree);
-
-  const W = 110, H = 80;
-  const pad = 12;
-  const r = Math.max(2, Math.min(5, 30 / Math.sqrt(size)));
-
-  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svgEl.innerHTML = '';
-
-  let minX = Infinity, maxX = -Infinity;
-  positions.forEach(p => { minX = Math.min(minX, p._x); maxX = Math.max(maxX, p._x); });
-  const xRange = maxX - minX || 1;
-  const yRange = depth || 1;
-  const sx = (W - pad * 2) / xRange;
-  const sy = (H - pad * 2) / yRange;
-
-  function mx(node) { return pad + (node._x - minX) * sx; }
-  function my(node) { return pad + node._y * sy; }
-
-  function drawE(node) {
-    for (const child of node.children) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', mx(node)); line.setAttribute('y1', my(node));
-      line.setAttribute('x2', mx(child)); line.setAttribute('y2', my(child));
-      line.setAttribute('stroke', '#3a3a5c');
-      line.setAttribute('stroke-width', 1);
-      svgEl.appendChild(line);
-      drawE(child);
-    }
-  }
-  drawE(tree);
-
-  function drawN(node, isRoot) {
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.setAttribute('cx', mx(node)); c.setAttribute('cy', my(node));
-    c.setAttribute('r', r);
-    c.setAttribute('fill', node.children.length === 0 ? '#7c6fef99' : '#1a1a2e');
-    c.setAttribute('stroke', isRoot ? '#e8a449' : '#7c6fef');
-    c.setAttribute('stroke-width', isRoot ? 1.5 : 1);
-    svgEl.appendChild(c);
-    for (const child of node.children) drawN(child, false);
-  }
-  drawN(tree, true);
-}
-
-function buildGallery() {
-  const container = document.getElementById('galleryContainer');
-  container.innerHTML = '';
-
-  for (const fam of families) {
-    const row = document.createElement('div');
-    row.className = 'gallery-row';
-
-    const h3 = document.createElement('h3');
-    h3.textContent = fam.name;
-    row.appendChild(h3);
-
-    const p = document.createElement('p');
-    p.textContent = fam.desc;
-    row.appendChild(p);
-
-    const items = document.createElement('div');
-    items.className = 'gallery-items';
-
-    for (const item of fam.numbers) {
-      const card = document.createElement('div');
-      card.className = 'gallery-card';
-      card.addEventListener('click', () => {
-        document.getElementById('numberInput').value = item.n;
-        update(item.n);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      renderMiniTree(svg, item.n);
-      card.appendChild(svg);
-
-      const label = document.createElement('div');
-      label.className = 'gallery-card-label';
-      label.innerHTML = `${item.label}<span class="sub">${item.sub}</span>`;
-      card.appendChild(label);
-
-      items.appendChild(card);
-    }
-
-    row.appendChild(items);
-    container.appendChild(row);
-  }
-}
-
-buildGallery();
-</script>
+  <p>Built by <a href="https://onyxclaw.substack.com">Onyx</a> — interactive mathematics for curious minds.</p>
+</footer>
 
 </body>
 </html>

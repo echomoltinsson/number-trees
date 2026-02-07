@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curvature from Tilings — Why Hyperbolic?</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --spherical: #60a5fa;
+    --flat: #a0a0a0;
+    --hyperbolic: #f472b6;
+    --highlight: #e8a449;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 2rem 1rem;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+  .nav-links a.current { color: var(--accent); }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 2rem;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 700px;
+    margin-bottom: 1.5rem;
+  }
+
+  .slider-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .slider-container label {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    min-width: 80px;
+  }
+
+  .slider-container input[type="range"] {
+    flex: 1;
+    height: 8px;
+    accent-color: var(--accent);
+    background: var(--surface);
+    border-radius: 4px;
+  }
+
+  .p-display {
+    min-width: 60px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .curvature-indicator {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    padding: 1rem 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+
+  .indicator {
+    text-align: center;
+  }
+
+  .indicator .value {
+    font-size: 1.4rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+  }
+
+  .indicator .label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .indicator.curvature .value.spherical { color: var(--spherical); }
+  .indicator.curvature .value.flat { color: var(--flat); }
+  .indicator.curvature .value.hyperbolic { color: var(--hyperbolic); }
+
+  #canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .geometry-label {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .geometry-label.spherical {
+    background: rgba(96, 165, 250, 0.2);
+    border: 1px solid var(--spherical);
+    color: var(--spherical);
+  }
+
+  .geometry-label.flat {
+    background: rgba(160, 160, 160, 0.2);
+    border: 1px solid var(--flat);
+    color: var(--flat);
+  }
+
+  .geometry-label.hyperbolic {
+    background: rgba(244, 114, 182, 0.2);
+    border: 1px solid var(--hyperbolic);
+    color: var(--hyperbolic);
+  }
+
+  .platonic-label {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(124, 111, 239, 0.2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .platonic-label.visible { opacity: 1; }
+
+  .info-panel {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .info-panel h3 {
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 0.75rem;
+  }
+
+  .info-panel p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    margin-bottom: 0.75rem;
+  }
+
+  .info-panel p:last-child { margin-bottom: 0; }
+
+  .info-panel code {
+    background: var(--bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--highlight);
+  }
+
+  .equation {
+    text-align: center;
+    padding: 1rem;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+
+  .equation .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    margin: 0 0.3em;
+  }
+
+  .equation .frac-num { border-bottom: 1px solid var(--text); padding-bottom: 2px; }
+  .equation .frac-den { padding-top: 2px; }
+
+  .animate-btn {
+    background: var(--accent);
+    border: none;
+    color: white;
+    padding: 0.6rem 1.5rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .animate-btn:hover { opacity: 0.9; }
+  .animate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  footer {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    header { padding: 1.5rem 1rem 0.75rem; }
+    h1 { font-size: 1.3rem; }
+    .curvature-indicator { gap: 1rem; }
+    .indicator .value { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Curvature from <span>Tilings</span></h1>
+  <p class="subtitle">
+    Why does hyperbolic geometry appear in number theory? Because when you try to fit 
+    more than three hexagons at a vertex, space itself must curve to accommodate them.
+  </p>
+</header>
+
+<nav class="nav-links">
+  <a href="index.html">Home</a>
+  <a href="matula.html">Trees</a>
+  <a href="calkin-wilf.html">Calkin-Wilf</a>
+  <a href="ford-circles.html">Ford Circles</a>
+  <a href="hyperbolic.html">Hyperbolic</a>
+  <a href="tilings.html" class="current">Tilings</a>
+</nav>
+
+<main>
+  <div class="controls">
+    <div class="slider-container">
+      <label>Polygon sides (p):</label>
+      <input type="range" id="p-slider" min="3" max="24" value="6" step="1">
+      <div class="p-display" id="p-display">6</div>
+    </div>
+    
+    <div class="curvature-indicator">
+      <div class="indicator">
+        <div class="value" id="interior-angle">120°</div>
+        <div class="label">Interior angle of p-gon</div>
+      </div>
+      <div class="indicator">
+        <div class="value" id="angle-sum">360°</div>
+        <div class="label">3 polygons at vertex</div>
+      </div>
+      <div class="indicator curvature">
+        <div class="value flat" id="deficit">0°</div>
+        <div class="label">Angle deficit/excess</div>
+      </div>
+    </div>
+    
+    <button class="animate-btn" id="animate-btn">▶ Animate p: 3 → ∞</button>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+    <div class="geometry-label flat" id="geometry-label">Euclidean (flat)</div>
+    <div class="platonic-label" id="platonic-label">Hexagonal tiling</div>
+  </div>
+
+  <div class="info-panel">
+    <h3>The {p, 3} Tilings</h3>
+    <p>
+      A <strong>{p, 3} tiling</strong> places regular p-gons (p-sided polygons) with exactly 
+      3 meeting at each vertex. The interior angle of a regular p-gon is <code>(p-2)·180°/p</code>.
+    </p>
+    <p>
+      For 3 polygons to fit perfectly around a vertex, we need their angles to sum to exactly 360°:
+    </p>
+    <div class="equation">
+      3 × <span class="frac"><span class="frac-num">(p-2)·180°</span><span class="frac-den">p</span></span> = 360°   →   p = 6
+    </div>
+    <p>
+      This is why <strong>hexagons tile the flat plane</strong>. For p < 6, the angles sum to less 
+      than 360° — there's <em>angular deficit</em>, and the surface must curve positively (sphere). 
+      For p > 6, the angles exceed 360° — there's <em>angular excess</em>, forcing negative 
+      curvature (hyperbolic space).
+    </p>
+    <p>
+      As p → ∞, the polygons become "apeirogons" (infinite-sided). Three apeirogons meeting at a 
+      vertex gives the <strong>ideal triangle tiling</strong> of hyperbolic space — exactly the 
+      structure of Ford circles, where each rational number is an ideal vertex.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <a href="hyperbolic.html">← Hyperbolic Geometry</a> · <a href="ford-circles.html">Ford Circles →</a>
+</footer>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('canvas-container');
+
+const pSlider = document.getElementById('p-slider');
+const pDisplay = document.getElementById('p-display');
+const interiorAngleEl = document.getElementById('interior-angle');
+const angleSumEl = document.getElementById('angle-sum');
+const deficitEl = document.getElementById('deficit');
+const geometryLabel = document.getElementById('geometry-label');
+const platonicLabel = document.getElementById('platonic-label');
+const animateBtn = document.getElementById('animate-btn');
+
+let width, height;
+let p = 6;
+let animating = false;
+
+const colors = {
+  bg: '#0a0a0f',
+  surface: '#12121a',
+  polygon: 'rgba(124, 111, 239, 0.15)',
+  polygonStroke: '#7c6fef',
+  spherical: '#60a5fa',
+  flat: '#a0a0a0',
+  hyperbolic: '#f472b6',
+  vertex: '#e8a449',
+  text: '#c8c8d4'
+};
+
+const platonicNames = {
+  3: 'Tetrahedron (on sphere)',
+  4: 'Cube (on sphere)',
+  5: 'Dodecahedron (on sphere)',
+  6: 'Hexagonal tiling'
+};
+
+function resize() {
+  const rect = container.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  width = rect.width;
+  height = rect.height;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  ctx.scale(dpr, dpr);
+  draw();
+}
+
+function interiorAngle(sides) {
+  return (sides - 2) * 180 / sides;
+}
+
+function updateDisplay() {
+  const displayP = p > 20 ? '∞' : p.toString();
+  pDisplay.textContent = displayP;
+  
+  const angle = p > 20 ? 180 : interiorAngle(p);
+  const sum = 3 * angle;
+  const deficit = 360 - sum;
+  
+  interiorAngleEl.textContent = p > 20 ? '180°' : angle.toFixed(1) + '°';
+  angleSumEl.textContent = p > 20 ? '540°' : sum.toFixed(1) + '°';
+  
+  if (Math.abs(deficit) < 0.5) {
+    deficitEl.textContent = '0°';
+    deficitEl.className = 'value flat';
+    geometryLabel.textContent = 'Euclidean (flat)';
+    geometryLabel.className = 'geometry-label flat';
+  } else if (deficit > 0) {
+    deficitEl.textContent = '+' + deficit.toFixed(1) + '° deficit';
+    deficitEl.className = 'value spherical';
+    geometryLabel.textContent = 'Spherical (+)';
+    geometryLabel.className = 'geometry-label spherical';
+  } else {
+    deficitEl.textContent = Math.abs(deficit).toFixed(1) + '° excess';
+    deficitEl.className = 'value hyperbolic';
+    geometryLabel.textContent = 'Hyperbolic (−)';
+    geometryLabel.className = 'geometry-label hyperbolic';
+  }
+  
+  if (platonicNames[p]) {
+    platonicLabel.textContent = platonicNames[p];
+    platonicLabel.classList.add('visible');
+  } else {
+    platonicLabel.classList.remove('visible');
+  }
+}
+
+// Draw a regular polygon centered at (cx, cy) with given radius and rotation
+function drawPolygon(cx, cy, sides, radius, rotation = 0, fill = true) {
+  ctx.beginPath();
+  for (let i = 0; i < sides; i++) {
+    const angle = rotation + (2 * Math.PI * i) / sides - Math.PI / 2;
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = colors.polygon;
+    ctx.fill();
+  }
+  ctx.strokeStyle = colors.polygonStroke;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// Get vertices of a polygon
+function getPolygonVertices(cx, cy, sides, radius, rotation = 0) {
+  const vertices = [];
+  for (let i = 0; i < sides; i++) {
+    const angle = rotation + (2 * Math.PI * i) / sides - Math.PI / 2;
+    vertices.push({
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle)
+    });
+  }
+  return vertices;
+}
+
+// Draw the tiling visualization
+function drawTiling() {
+  const cx = width / 2;
+  const cy = height / 2;
+  
+  // For hyperbolic geometry, we use the Poincaré disk model
+  const diskRadius = Math.min(width, height) * 0.42;
+  
+  // Draw boundary circle for hyperbolic case
+  if (p > 6) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, diskRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = colors.hyperbolic;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(244, 114, 182, 0.03)';
+    ctx.fill();
+  }
+  
+  if (p === 6) {
+    // Euclidean: regular hexagonal tiling
+    drawEuclideanTiling(cx, cy, diskRadius);
+  } else if (p < 6) {
+    // Spherical: show the "closing up" of polygons
+    drawSphericalTiling(cx, cy, diskRadius);
+  } else {
+    // Hyperbolic: Poincaré disk model
+    drawHyperbolicTiling(cx, cy, diskRadius);
+  }
+}
+
+function drawEuclideanTiling(cx, cy, maxR) {
+  const size = maxR / 3;
+  const dx = size * 1.5;
+  const dy = size * Math.sqrt(3);
+  
+  for (let row = -3; row <= 3; row++) {
+    for (let col = -3; col <= 3; col++) {
+      const x = cx + col * dx;
+      const y = cy + row * dy + (col % 2 ? dy/2 : 0);
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+      if (dist < maxR + size) {
+        ctx.globalAlpha = Math.max(0, 1 - dist / (maxR * 1.2));
+        drawPolygon(x, y, 6, size * 0.95, Math.PI / 6);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+  
+  // Highlight central vertex
+  drawVertex(cx, cy + size, 8);
+}
+
+function drawSphericalTiling(cx, cy, maxR) {
+  const sides = p;
+  const interiorAng = interiorAngle(sides) * Math.PI / 180;
+  const deficit = Math.PI * 2 - 3 * interiorAng;
+  
+  // Scale effect: polygons get smaller as they "curve around"
+  const baseSize = maxR / 2.5;
+  
+  // Central polygon
+  const rotation = sides === 3 ? 0 : Math.PI / sides;
+  drawPolygon(cx, cy, sides, baseSize, rotation);
+  
+  // Surrounding polygons - show them curving around
+  const centralVerts = getPolygonVertices(cx, cy, sides, baseSize, rotation);
+  
+  for (let i = 0; i < sides; i++) {
+    const edgeMidX = (centralVerts[i].x + centralVerts[(i + 1) % sides].x) / 2;
+    const edgeMidY = (centralVerts[i].y + centralVerts[(i + 1) % sides].y) / 2;
+    
+    // Direction away from center
+    const dx = edgeMidX - cx;
+    const dy = edgeMidY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Place adjacent polygon
+    const neighborDist = dist + baseSize * 0.85;
+    const nx = cx + (dx / dist) * neighborDist;
+    const ny = cy + (dy / dist) * neighborDist;
+    
+    // Rotate to align with edge
+    const edgeAngle = Math.atan2(centralVerts[(i + 1) % sides].y - centralVerts[i].y,
+                                  centralVerts[(i + 1) % sides].x - centralVerts[i].x);
+    
+    ctx.globalAlpha = 0.7;
+    drawPolygon(nx, ny, sides, baseSize * 0.85, edgeAngle + Math.PI / 2 + Math.PI / sides);
+  }
+  ctx.globalAlpha = 1;
+  
+  // Show that polygons would close up on a sphere
+  ctx.fillStyle = colors.text;
+  ctx.font = '11px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Would close on a sphere', cx, cy + maxR * 0.85);
+  
+  // Highlight a vertex where 3 polygons meet
+  drawVertex(centralVerts[0].x, centralVerts[0].y, 8);
+}
+
+function drawHyperbolicTiling(cx, cy, diskR) {
+  const sides = Math.min(p, 24);
+  
+  // For {p,3} tiling in Poincaré disk, central polygon has a specific size
+  // based on hyperbolic trigonometry. Simplified approximation here.
+  const deficitRatio = (3 * interiorAngle(sides) - 360) / 360;
+  const centralSize = diskR * (0.35 - deficitRatio * 0.15);
+  
+  // Central polygon
+  ctx.globalAlpha = 1;
+  drawPolygon(cx, cy, sides, centralSize, 0);
+  
+  // Adjacent polygons (around edges)
+  const centralVerts = getPolygonVertices(cx, cy, sides, centralSize, 0);
+  
+  for (let i = 0; i < sides; i++) {
+    const v1 = centralVerts[i];
+    const v2 = centralVerts[(i + 1) % sides];
+    
+    const edgeMidX = (v1.x + v2.x) / 2;
+    const edgeMidY = (v1.y + v2.y) / 2;
+    
+    const dx = edgeMidX - cx;
+    const dy = edgeMidY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // In hyperbolic space, polygons "shrink" toward boundary
+    const neighborDist = dist * 1.7;
+    const nx = cx + (dx / dist) * neighborDist;
+    const ny = cy + (dy / dist) * neighborDist;
+    
+    // Size shrinks toward boundary (hyperbolic metric)
+    const boundaryDist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+    const sizeFactor = 1 - boundaryDist / diskR;
+    const neighborSize = centralSize * Math.max(0.3, sizeFactor * 0.8);
+    
+    const edgeAngle = Math.atan2(v2.y - v1.y, v2.x - v1.x);
+    
+    ctx.globalAlpha = Math.max(0.2, sizeFactor);
+    drawPolygon(nx, ny, sides, neighborSize, edgeAngle + Math.PI / 2);
+    
+    // Second layer
+    if (sizeFactor > 0.4) {
+      const layer2Dist = neighborDist * 1.5;
+      const nx2 = cx + (dx / dist) * layer2Dist;
+      const ny2 = cy + (dy / dist) * layer2Dist;
+      const boundaryDist2 = Math.sqrt((nx2 - cx) ** 2 + (ny2 - cy) ** 2);
+      const sizeFactor2 = 1 - boundaryDist2 / diskR;
+      
+      if (sizeFactor2 > 0.15) {
+        ctx.globalAlpha = Math.max(0.1, sizeFactor2 * 0.7);
+        drawPolygon(nx2, ny2, sides, neighborSize * 0.5, edgeAngle + Math.PI / 2);
+      }
+    }
+  }
+  
+  ctx.globalAlpha = 1;
+  
+  // Highlight vertex
+  drawVertex(centralVerts[0].x, centralVerts[0].y, 6);
+  
+  // Label
+  ctx.fillStyle = colors.text;
+  ctx.font = '11px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Poincaré disk model', cx, cy + diskR + 20);
+}
+
+function drawVertex(x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = colors.vertex;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function draw() {
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, width, height);
+  
+  drawTiling();
+  updateDisplay();
+}
+
+// Animation
+let animationFrame = null;
+function animate() {
+  if (!animating) return;
+  
+  p += 0.15;
+  if (p > 24) {
+    p = 24;
+    animating = false;
+    animateBtn.textContent = '▶ Animate p: 3 → ∞';
+    animateBtn.disabled = false;
+  }
+  
+  pSlider.value = Math.min(24, Math.round(p));
+  draw();
+  
+  if (animating) {
+    animationFrame = requestAnimationFrame(animate);
+  }
+}
+
+animateBtn.addEventListener('click', () => {
+  if (animating) {
+    animating = false;
+    cancelAnimationFrame(animationFrame);
+    animateBtn.textContent = '▶ Animate p: 3 → ∞';
+  } else {
+    p = 3;
+    pSlider.value = 3;
+    animating = true;
+    animateBtn.textContent = '⏸ Pause';
+    animate();
+  }
+});
+
+pSlider.addEventListener('input', (e) => {
+  p = parseInt(e.target.value);
+  animating = false;
+  animateBtn.textContent = '▶ Animate p: 3 → ∞';
+  draw();
+});
+
+window.addEventListener('resize', resize);
+resize();
+</script>
+
+</body>
+</html>

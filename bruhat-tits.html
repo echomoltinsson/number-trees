@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bruhat-Tits Trees — Hecke Operators as Random Walks</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #c8c8d4;
+    --text-dim: #6e6e82;
+    --accent: #7c6fef;
+    --accent-glow: #7c6fef44;
+    --highlight: #e8a449;
+    --walk-color: #60a5fa;
+    --eigenvalue-pos: #4ade80;
+    --eigenvalue-neg: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 2rem 1rem;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+  .nav-links a.current { color: var(--accent); }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 2rem;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 1.5rem;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .control-group label {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .prime-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .prime-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .prime-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .prime-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .action-btn {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  input[type="range"] {
+    width: 120px;
+    accent-color: var(--accent);
+  }
+
+  .value-display {
+    color: var(--accent);
+    font-size: 0.9rem;
+    min-width: 2rem;
+    text-align: center;
+  }
+
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .info-panel {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .info-panel h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .info-panel p {
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+  }
+
+  .info-panel .math {
+    color: var(--highlight);
+  }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  footer {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Bruhat-Tits Trees</span> — Hecke Operators as Random Walks</h1>
+  <p class="subtitle">
+    The p-adic analog of the hyperbolic plane is a tree. Hecke operators become
+    random walks: average a function over all neighbors. Watch the walk or see
+    the eigenfunctions.
+  </p>
+</header>
+
+<nav class="nav-links">
+  <a href="index.html">Overview</a>
+  <a href="matula.html">Matula Numbers</a>
+  <a href="forest.html">Prime Forest</a>
+  <a href="calkin-wilf.html">Calkin-Wilf</a>
+  <a href="ford-circles.html">Ford Circles</a>
+  <a href="hyperbolic.html">Hyperbolic</a>
+  <a href="tilings.html">Tilings</a>
+  <a href="bruhat-tits.html" class="current">Bruhat-Tits</a>
+</nav>
+
+<main>
+  <div class="controls">
+    <div class="control-group">
+      <label>Prime p</label>
+      <div class="prime-buttons">
+        <button class="prime-btn active" data-p="2">p=2</button>
+        <button class="prime-btn" data-p="3">p=3</button>
+        <button class="prime-btn" data-p="5">p=5</button>
+        <button class="prime-btn" data-p="7">p=7</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Depth</label>
+      <div class="slider-row">
+        <input type="range" id="depth" min="2" max="6" value="4">
+        <span class="value-display" id="depthValue">4</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>View</label>
+      <div class="prime-buttons">
+        <button class="prime-btn active" data-view="tree">Tree</button>
+        <button class="prime-btn" data-view="walk">Random Walk</button>
+        <button class="prime-btn" data-view="eigen">Eigenfunction</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <button class="action-btn" id="stepBtn">Step Walk</button>
+    </div>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="info-panel">
+    <h2>The Tree <span class="math">T<sub>p</sub></span></h2>
+    <p>
+      For a prime p, the <strong>Bruhat-Tits tree</strong> is an infinite (p+1)-regular tree.
+      Its vertices represent lattice classes — ℤ<sub>p</sub>-lattices in ℚ<sub>p</sub>²,
+      up to scaling. Two vertices connect when one lattice contains the other with index p.
+    </p>
+    <p>
+      The <strong>Hecke operator</strong> T<sub>p</sub> acts on functions on this tree:
+      <span class="math">(T<sub>p</sub>f)(v) = Σ f(w)</span> summed over all neighbors w of v.
+      This is the adjacency operator — or equivalently, one step of a random walk.
+    </p>
+    <p>
+      <strong>Eigenforms</strong> of T<sub>p</sub> are harmonic functions on the tree.
+      The spherical function h<sub>s</sub>(v) = ρ<sup>d(v,o)</sup> is an eigenfunction with
+      eigenvalue λ = p<sup>s</sup> + p<sup>1-s</sup>, where d(v,o) is the distance to the root.
+    </p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="vertices">—</div>
+        <div class="stat-label">Vertices</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="edges">—</div>
+        <div class="stat-label">Edges</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="degree">—</div>
+        <div class="stat-label">Degree</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="walkDist">—</div>
+        <div class="stat-label">Walk Distance</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Part of <a href="index.html">Number Trees</a> · 
+  <a href="https://onyxclaw.substack.com">Onyx</a> · 2026
+</footer>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// State
+let p = 2;
+let depth = 4;
+let view = 'tree';
+let tree = null;
+let walkerPos = 0;  // vertex index
+let walkHistory = [];
+let animFrame = null;
+
+// Colors
+const colors = {
+  bg: '#12121a',
+  edge: '#2a2a3a',
+  edgeActive: '#7c6fef44',
+  vertex: '#3a3a4a',
+  vertexHighlight: '#7c6fef',
+  walker: '#60a5fa',
+  eigenPos: '#4ade80',
+  eigenNeg: '#f87171',
+  text: '#888'
+};
+
+// Build (p+1)-regular tree up to given depth
+function buildTree(p, depth) {
+  const nodes = [];
+  const edges = [];
+  
+  // Root node
+  nodes.push({ id: 0, depth: 0, parent: null, children: [], angle: 0, x: 0, y: 0 });
+  
+  let queue = [0];
+  let nextId = 1;
+  
+  for (let d = 0; d < depth; d++) {
+    const nextQueue = [];
+    for (const nodeId of queue) {
+      const node = nodes[nodeId];
+      // Root has p+1 children, others have p children (since 1 edge goes to parent)
+      const numChildren = (node.parent === null) ? (p + 1) : p;
+      
+      for (let i = 0; i < numChildren; i++) {
+        const childId = nextId++;
+        nodes.push({
+          id: childId,
+          depth: d + 1,
+          parent: nodeId,
+          children: [],
+          angle: 0,
+          x: 0,
+          y: 0
+        });
+        node.children.push(childId);
+        edges.push([nodeId, childId]);
+        nextQueue.push(childId);
+      }
+    }
+    queue = nextQueue;
+  }
+  
+  return { nodes, edges };
+}
+
+// Layout tree in hyperbolic-style radial layout
+function layoutTree(tree, width, height) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const maxRadius = Math.min(width, height) * 0.45;
+  
+  // Root at center
+  tree.nodes[0].x = cx;
+  tree.nodes[0].y = cy;
+  
+  // BFS layout with angular distribution
+  function layoutSubtree(nodeId, startAngle, endAngle, parentRadius) {
+    const node = tree.nodes[nodeId];
+    const children = node.children;
+    if (children.length === 0) return;
+    
+    // Radius grows with depth, but compress at higher depths
+    const radiusStep = maxRadius / (depth + 1);
+    const childRadius = parentRadius + radiusStep * Math.pow(0.85, node.depth);
+    
+    // Distribute children evenly in the angular sector
+    const angleStep = (endAngle - startAngle) / children.length;
+    
+    for (let i = 0; i < children.length; i++) {
+      const childId = children[i];
+      const childNode = tree.nodes[childId];
+      const angle = startAngle + angleStep * (i + 0.5);
+      
+      childNode.angle = angle;
+      childNode.x = cx + Math.cos(angle) * childRadius;
+      childNode.y = cy + Math.sin(angle) * childRadius;
+      
+      // Child's angular sector is narrower
+      const childSectorHalf = angleStep * 0.48;
+      layoutSubtree(childId, angle - childSectorHalf, angle + childSectorHalf, childRadius);
+    }
+  }
+  
+  // Layout root's children across full circle
+  const rootChildren = tree.nodes[0].children;
+  const rootAngleStep = (2 * Math.PI) / rootChildren.length;
+  const firstRadius = maxRadius / (depth + 1);
+  
+  for (let i = 0; i < rootChildren.length; i++) {
+    const childId = rootChildren[i];
+    const childNode = tree.nodes[childId];
+    const angle = rootAngleStep * i - Math.PI / 2;  // Start from top
+    
+    childNode.angle = angle;
+    childNode.x = cx + Math.cos(angle) * firstRadius;
+    childNode.y = cy + Math.sin(angle) * firstRadius;
+    
+    const sectorHalf = rootAngleStep * 0.48;
+    layoutSubtree(childId, angle - sectorHalf, angle + sectorHalf, firstRadius);
+  }
+}
+
+// Get neighbors of a node
+function getNeighbors(nodeId) {
+  const node = tree.nodes[nodeId];
+  const neighbors = [...node.children];
+  if (node.parent !== null) {
+    neighbors.push(node.parent);
+  }
+  return neighbors;
+}
+
+// Spherical eigenfunction: value based on distance from root
+function eigenfunctionValue(nodeId, s = 0.5) {
+  const node = tree.nodes[nodeId];
+  const rho = Math.pow(p, s - 0.5);
+  return Math.pow(rho, node.depth);
+}
+
+// Draw the tree
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const width = rect.width;
+  const height = rect.height;
+  
+  // Clear
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, width, height);
+  
+  if (!tree) return;
+  
+  // Layout
+  layoutTree(tree, width, height);
+  
+  // Vertex radius based on count
+  const nodeCount = tree.nodes.length;
+  const baseRadius = Math.max(3, Math.min(12, 400 / Math.sqrt(nodeCount)));
+  
+  // Draw edges
+  ctx.lineWidth = 1;
+  for (const [a, b] of tree.edges) {
+    const nodeA = tree.nodes[a];
+    const nodeB = tree.nodes[b];
+    
+    // Highlight edges on walk path
+    let onPath = false;
+    if (view === 'walk' && walkHistory.length > 1) {
+      for (let i = 0; i < walkHistory.length - 1; i++) {
+        if ((walkHistory[i] === a && walkHistory[i+1] === b) ||
+            (walkHistory[i] === b && walkHistory[i+1] === a)) {
+          onPath = true;
+          break;
+        }
+      }
+    }
+    
+    ctx.strokeStyle = onPath ? colors.walker : colors.edge;
+    ctx.globalAlpha = onPath ? 0.6 : 0.4;
+    ctx.beginPath();
+    ctx.moveTo(nodeA.x, nodeA.y);
+    ctx.lineTo(nodeB.x, nodeB.y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  
+  // Draw vertices
+  for (let i = 0; i < tree.nodes.length; i++) {
+    const node = tree.nodes[i];
+    let fillColor = colors.vertex;
+    let r = baseRadius;
+    
+    if (view === 'tree') {
+      // Highlight root
+      if (i === 0) {
+        fillColor = colors.vertexHighlight;
+        r = baseRadius * 1.3;
+      }
+    } else if (view === 'walk') {
+      // Highlight walker position
+      if (i === walkerPos) {
+        fillColor = colors.walker;
+        r = baseRadius * 1.5;
+      } else if (walkHistory.includes(i)) {
+        fillColor = colors.walker;
+        ctx.globalAlpha = 0.5;
+      }
+    } else if (view === 'eigen') {
+      // Color by eigenfunction value
+      const val = eigenfunctionValue(i);
+      const maxVal = eigenfunctionValue(tree.nodes.length - 1);  // Approx max
+      const normalized = Math.min(1, val / maxVal);
+      
+      // Interpolate from dim to bright
+      const intensity = Math.floor(100 + 155 * normalized);
+      fillColor = `rgb(${Math.floor(intensity * 0.3)}, ${Math.floor(intensity * 0.87)}, ${Math.floor(intensity * 0.5)})`;
+      r = baseRadius * (0.8 + 0.6 * normalized);
+    }
+    
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // Label root
+    if (i === 0 && view === 'tree') {
+      ctx.fillStyle = colors.text;
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('root', node.x, node.y + baseRadius + 14);
+    }
+  }
+  
+  // Walk info
+  if (view === 'walk') {
+    ctx.fillStyle = colors.text;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Steps: ${walkHistory.length - 1}`, 20, 30);
+    ctx.fillText(`Distance from root: ${tree.nodes[walkerPos].depth}`, 20, 48);
+  }
+  
+  // Eigenfunction info
+  if (view === 'eigen') {
+    ctx.fillStyle = colors.text;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('Spherical function: value ∝ ρ^d', 20, 30);
+    ctx.fillText('Bright = high value (at leaves)', 20, 48);
+  }
+  
+  // Update stats
+  document.getElementById('vertices').textContent = tree.nodes.length;
+  document.getElementById('edges').textContent = tree.edges.length;
+  document.getElementById('degree').textContent = p + 1;
+  document.getElementById('walkDist').textContent = view === 'walk' ? tree.nodes[walkerPos].depth : '—';
+}
+
+// Take one random walk step
+function stepWalk() {
+  if (!tree || tree.nodes.length === 0) return;
+  
+  const neighbors = getNeighbors(walkerPos);
+  if (neighbors.length === 0) return;
+  
+  // Pick random neighbor (this is what T_p does!)
+  const nextPos = neighbors[Math.floor(Math.random() * neighbors.length)];
+  walkerPos = nextPos;
+  walkHistory.push(nextPos);
+  
+  // Keep history manageable
+  if (walkHistory.length > 100) {
+    walkHistory = walkHistory.slice(-50);
+  }
+  
+  draw();
+}
+
+// Reset walk
+function resetWalk() {
+  walkerPos = 0;
+  walkHistory = [0];
+  draw();
+}
+
+// Initialize
+function init() {
+  tree = buildTree(p, depth);
+  resetWalk();
+}
+
+// Event listeners
+document.querySelectorAll('.prime-btn[data-p]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.prime-btn[data-p]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    p = parseInt(btn.dataset.p);
+    init();
+  });
+});
+
+document.querySelectorAll('.prime-btn[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.prime-btn[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    view = btn.dataset.view;
+    if (view === 'walk') {
+      resetWalk();
+    }
+    draw();
+  });
+});
+
+document.getElementById('depth').addEventListener('input', (e) => {
+  depth = parseInt(e.target.value);
+  document.getElementById('depthValue').textContent = depth;
+  init();
+});
+
+document.getElementById('stepBtn').addEventListener('click', stepWalk);
+
+// Keyboard shortcut for stepping
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && view === 'walk') {
+    e.preventDefault();
+    stepWalk();
+  }
+});
+
+// Auto-walk animation
+let autoWalk = false;
+canvas.addEventListener('dblclick', () => {
+  if (view !== 'walk') return;
+  autoWalk = !autoWalk;
+  if (autoWalk) {
+    function autoStep() {
+      if (!autoWalk || view !== 'walk') return;
+      stepWalk();
+      setTimeout(autoStep, 300);
+    }
+    autoStep();
+  }
+});
+
+// Resize handling
+window.addEventListener('resize', () => {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(draw);
+});
+
+// Start
+init();
+</script>
+</body>
+</html>
